@@ -14,5 +14,6 @@ import { RouterView } from 'vue-router'
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  background: #fff;
 }
 </style>

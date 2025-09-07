@@ -1,20 +1,27 @@
+
 <script setup lang="ts">
-// Página inicial do app após o clique no landing
+import SideMenu from '@/components/SideMenu.vue'
+import EmptyPlaceholder from '@/components/EmptyPlaceholder.vue'
 </script>
 
 <template>
-  <main class="home">
-    <h2>Página Inicial</h2>
-    <p>Conteúdo do seu projeto começa aqui.</p>
+  <main class="screen">
+    <SideMenu />
+    <section class="content" aria-label="Área principal">
+      <EmptyPlaceholder />
+    </section>
   </main>
 </template>
 
 <style scoped>
-.home {
+.screen {
   min-height: 100dvh;
   display: grid;
-  place-items: center;
-  padding: 2rem;
-  text-align: center;
+  grid-template-columns: auto 1fr;
+  gap: 1.25rem;
+  padding: 1rem 1.25rem;
 }
+
+.content { display: grid; }
+
 </style>
