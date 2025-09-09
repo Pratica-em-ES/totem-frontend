@@ -2,13 +2,17 @@
 <script setup lang="ts">
 import SideMenu from '@/components/SideMenu.vue'
 import EmptyPlaceholder from '@/components/EmptyPlaceholder.vue'
+import MapRenderer from '@/components/MapRenderer.vue';
 </script>
 
 <template>
 	<main class="screen">
 		<SideMenu />
 		<section class="content">
-			<EmptyPlaceholder />
+			<!-- <EmptyPlaceholder /> -->
+			<div class="map-renderer">
+      			<MapRenderer />
+   	 		</div>
 		</section>
 	</main>
 </template>
@@ -25,6 +29,19 @@ import EmptyPlaceholder from '@/components/EmptyPlaceholder.vue'
 	display: flex;
 	flex-direction: column;
 	height: 100%;
+}
+
+/* os valores podem ser ajustados livremente */
+.map-renderer {
+  position: relative;
+  /* bottom: 5%; */
+  /* right: 2.5%; */
+  /* valores com uma cara bastante arbitraria kk (mudar para algo melhor caso precise) */
+  top: 13%;
+  left: 1.6%;
+  width: 96%;
+  height: 79%;
+  /* border: 1px solid red; */
 }
 
 </style>
