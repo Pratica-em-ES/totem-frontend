@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'; // para carregar os arquivos dos modelos
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js' // para carregar os arquivos dos modelos
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js' // para as labels dos predios
+import { FontLoader } from 'three/addons/loaders/FontLoader.js'
 
 const container = ref<HTMLDivElement | null>(null)
 let renderer: THREE.WebGLRenderer
@@ -25,22 +27,34 @@ onMounted(() => {
   camera.position.x = -17
   camera.position.y = 50
   camera.position.z = 80.71
+  camera.up.set(0, 1, 0) // eixo Y é o "cima"
   camera.lookAt(0,0,0) // olha para a origem!!! (meio do mapa)
 
   // Scene
   scene = new THREE.Scene()
   
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1)
-  dirLight.position.set(30, 20, 10)
-  scene.add(dirLight)
+  const sunlight = new THREE.DirectionalLight(0xffffff, 1)
+  sunlight.position.set(30, 20, 10)
+  sunlight.castShadow = true;
+  sunlight.shadow.camera.top = 200;
+  sunlight.shadow.camera.bottom = - 200;
+  sunlight.shadow.camera.left = - 200;
+  sunlight.shadow.camera.right = 200;
+  sunlight.shadow.camera.near = 1;
+  sunlight.shadow.camera.far = 2000;
+  scene.add(sunlight)
 
   // controla a iluminação da cena. Sem algum tipo de luz (e alterações nos materiais),
   // os modelos GLB não são visíveis
-  const ambient = new THREE.AmbientLight(0xffffff, 1) // cor, intensidade
+  const ambient = new THREE.AmbientLight(0xffffff, 3) // cor, intensidade
   scene.add(ambient)
 
   // Renderer
-  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    logarithmicDepthBuffer: true
+  })
+  renderer.shadowMap.enabled = true
   renderer.setSize(width, height)
   container.value.appendChild(renderer.domElement)
   
@@ -77,26 +91,32 @@ onBeforeUnmount(() => {
 
 function loadModels() {
   const models: string[] = [
-    // '/models/91A.glb',
-    // '/models/91B.glb',
-    // '/models/92A.glb',
-    // '/models/93.glb',
-    // '/models/94.glb',
-    // '/models/95A.glb',
-    // '/models/95c.glb',
-    // '/models/96.glb',
-    // '/models/96A.glb',
-    // '/models/96BCDF.glb',
-    // '/models/96j.glb',
-    // '/models/97.glb',
-    // '/models/99A.glb',
-    // '/models/tecnopuc.glb',
+    '/models/91A.glb',
+    '/models/91B.glb',
+    '/models/92A.glb',
+    '/models/93.glb',
+    '/models/94.glb',
+    '/models/95A.glb',
+    '/models/95c.glb',
+    '/models/96.glb',
+    '/models/96A.glb',
+    '/models/96BCDF.glb',
+    '/models/96j.glb',
+    '/models/97.glb',
+    '/models/99A.glb',
+    '/models/tecnopuc.glb',
   ]
   
   // falhará se o modelo não existir na pasta public. O cubo ainda será renderizado
   // modelos podem ser carregados assincronamente.
   // const glb = await loader.loadAsync('91A.glb')
   const loader = new GLTFLoader()
+  const fontLoader = new FontLoader();
+
+  let font: any
+  fontLoader.load('/fonts/League-Spartan.json', (loadedFont) => {
+    font = loadedFont
+  })
   models.forEach((modelpath) => {
     loader.load(modelpath, (gltf) => {
       const model = gltf.scene;
@@ -106,10 +126,39 @@ function loadModels() {
           const mat = mesh.material as THREE.MeshStandardMaterial
           // quanto maior, mais escuro o objeto fica. deve ser 0 no nosso caso
           mat.metalness = 0
+          mesh.receiveShadow = true
+          mesh.castShadow = true
         }
       })
       model.position.set(0,0.1,0)
       scene.add(model)
+
+
+      // Labels!!
+      // const box = new THREE.Box3().setFromObject(model)
+      // const size = new THREE.Vector3()
+      // const center = new THREE.Vector3()
+      // box.getSize(size)
+      // box.getCenter(center)
+      
+      
+      // let shape = font.generateShapes("91A", 3)
+	    // let geometryS = new THREE.ShapeGeometry(shape)
+      // geometryS.computeBoundingBox()
+
+      // const textBox = new THREE.Box3().setFromObject(new THREE.Mesh(geometryS))
+      // const textBoxSize = new THREE.Vector3()
+      // const textBoxCenter = new THREE.Vector3()
+      // textBox.getSize(textBoxSize)
+      // textBox.getCenter(textBoxCenter)
+      
+      
+      // const labelPos = [(center.x - size.x/2) + (size.x - textBoxSize.x) / 2, center.y + size.y / 2 + 0.2, (center.z - size.z/2) + (size.z - textBoxSize.z) / 2]
+      // const textMesh = new THREE.Mesh(geometryS, new THREE.MeshBasicMaterial({ color: 0xffffff }))
+      // // textMesh.scale.set(.5, .5, .5)
+      // textMesh.rotation.set(-Math.PI / 2, 0, -Math.PI / 2)
+      // textMesh.position.set(labelPos[0], labelPos[1], labelPos[2])
+      // scene.add(textMesh)
     })
   })
 }
@@ -354,23 +403,27 @@ function loadGround() {
     new THREE.PlaneGeometry(worldSize, worldSize),
     roadMaterial
   )
-  roadPlane.position.set(0, 0.01, 0)
+  // roadPlane.receiveShadow = true
+  roadPlane.position.set(0, 0, 0)
   roadPlane.setRotationFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))
   scene.add(roadPlane)
 
   const grassTexture = new THREE.TextureLoader().load('textures/grass.jpg')
-  grassTexture.wrapS = THREE.RepeatWrapping
-  grassTexture.wrapT = THREE.RepeatWrapping
-  grassTexture.repeat.set(64,64)
+  grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping
+  grassTexture.repeat.set(30,30)
+  grassTexture.anisotropy = 8
 
-  const grassMaterial = new THREE.MeshBasicMaterial({
+  const grassMaterial = new THREE.MeshStandardMaterial({
     map: grassTexture,
     depthWrite: false,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    roughness: 0.8,
+    color: 0x4caf50,
   })
   const grassGeometry = new THREE.PlaneGeometry(worldSize, worldSize)
   const grassPlane = new THREE.Mesh(grassGeometry, grassMaterial)
   grassPlane.position.set(0, 0, 0)
+  // grassPlane.receiveShadow = true
   grassPlane.setRotationFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))
   scene.add(grassPlane)
 }
