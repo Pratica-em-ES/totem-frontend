@@ -21,12 +21,12 @@ onMounted(() => {
   const height: number = container.value.clientHeight
 
   // Camera
-  camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 2000)
+  camera = new THREE.PerspectiveCamera(10, width / height, 0.01, 2000)
   // camera.fov = 45
   // camera.position.z = -1
-  camera.position.x = -17
-  camera.position.y = 50
-  camera.position.z = 80.71
+  camera.position.x = -68
+  camera.position.y = 200
+  camera.position.z = 322.84
   camera.up.set(0, 1, 0) // eixo Y é o "cima"
   camera.lookAt(0,0,0) // olha para a origem!!! (meio do mapa)
 
@@ -37,8 +37,8 @@ onMounted(() => {
   sunlight.position.set(30, 20, 10)
   sunlight.castShadow = true;
   sunlight.shadow.camera.top = 200;
-  sunlight.shadow.camera.bottom = - 200;
-  sunlight.shadow.camera.left = - 200;
+  sunlight.shadow.camera.bottom = -200;
+  sunlight.shadow.camera.left = -200;
   sunlight.shadow.camera.right = 200;
   sunlight.shadow.camera.near = 1;
   sunlight.shadow.camera.far = 2000;
@@ -46,40 +46,43 @@ onMounted(() => {
 
   // controla a iluminação da cena. Sem algum tipo de luz (e alterações nos materiais),
   // os modelos GLB não são visíveis
-  const ambient = new THREE.AmbientLight(0xffffff, 3) // cor, intensidade
+  const ambient = new THREE.AmbientLight(0xffffff, 1) // cor, intensidade
+  const directional = new THREE.DirectionalLight(0xffffff, 2);
+  directional.castShadow = true
   scene.add(ambient)
+  scene.add(directional)
 
   // Renderer
   renderer = new THREE.WebGLRenderer({
     antialias: true,
     logarithmicDepthBuffer: true
   })
+  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.shadowMap.enabled = true
   renderer.setSize(width, height)
-  container.value.appendChild(renderer.domElement)
   
   // Animation
   renderer.setAnimationLoop(animate)
   renderer.setClearColor(0x666666, 1)
 
-  // renderer.toneMapping = THREE.ACESFilmicToneMapping
-  // renderer.toneMappingExposure = 1// >1 makes scene brighter
-
   // Resize
   window.addEventListener('resize', onResize)
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enablePan = false
-  controls.minDistance = 60
-  controls.maxDistance = 120
+  controls.minDistance = 120
+  controls.maxDistance = 600
+  controls.enableDamping = true
   // controls.minPolarAngle = 0.3
   controls.maxPolarAngle = Math.PI / 2 - 0.1
 
   resizeObserver = new ResizeObserver(() => onResize())
   resizeObserver.observe(container.value)
-
+  
   loadGround()
   loadModels()
-  // renderizar estradas e chao
+
+  container.value.appendChild(renderer.domElement)
 })
 
 onBeforeUnmount(() => {
@@ -126,8 +129,8 @@ function loadModels() {
           const mat = mesh.material as THREE.MeshStandardMaterial
           // quanto maior, mais escuro o objeto fica. deve ser 0 no nosso caso
           mat.metalness = 0
-          mesh.receiveShadow = true
-          mesh.castShadow = true
+          // mesh.receiveShadow = true
+          // mesh.castShadow = true
         }
       })
       model.position.set(0,0.1,0)
@@ -354,6 +357,7 @@ function loadGround() {
     },
   ]
 
+  // RUAS
   const sizePx = 2048
   const cvs = document.createElement('canvas')
   cvs.width = cvs.height = sizePx
@@ -396,7 +400,10 @@ function loadGround() {
     alphaMap: roadAlphaMap,
     transparent: true,
     depthWrite: false,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    roughness: 0.6,
+    metalness: 0.1,
+    // color: 0x9b111e
   })
 
   const roadPlane = new THREE.Mesh(
@@ -408,6 +415,7 @@ function loadGround() {
   roadPlane.setRotationFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))
   scene.add(roadPlane)
 
+  // GRAMA
   const grassTexture = new THREE.TextureLoader().load('textures/grass.jpg')
   grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping
   grassTexture.repeat.set(30,30)
@@ -423,7 +431,7 @@ function loadGround() {
   const grassGeometry = new THREE.PlaneGeometry(worldSize, worldSize)
   const grassPlane = new THREE.Mesh(grassGeometry, grassMaterial)
   grassPlane.position.set(0, 0, 0)
-  // grassPlane.receiveShadow = true
+  grassPlane.receiveShadow = true
   grassPlane.setRotationFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))
   scene.add(grassPlane)
 }
