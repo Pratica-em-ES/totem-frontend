@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import LandingView from '../views/LandingView.vue'
 import ExampleView from '../views/ExampleView.vue'
 import MapVisualiser from '../views/MapVisualiser.vue'
+import CompaniesView from '../views/CompaniesView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +28,11 @@ const router = createRouter({
       name: 'map_test',
       component: MapVisualiser
     },
+    {
+      path: '/empresas',
+      name: 'companies',
+      component: CompaniesView,
+    }
   ],
 })
 

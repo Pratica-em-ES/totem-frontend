@@ -13,11 +13,11 @@ const router = useRouter()
 const items: MenuItem[] = [
   { key: 'home', label: 'Início', icon: 'home', to: '/home' },
   { key: 'rotas', label: 'Rotas', icon: 'route', to: '/exemplo' },
-  { key: 'empresas', label: 'Empresas', icon: 'users', to: '/exemplo' },
-  { key: 'filtrar', label: 'Filtrar', icon: 'sliders', to: '/exemplo' },
+  { key: 'empresas', label: 'Empresas', icon: 'users', to: '/empresas' },
 ]
 
 function go(to?: string) {
+  if (to) router.push(to)
 }
 
 function exit() {
@@ -43,25 +43,16 @@ function exit() {
             <path d="M4 10.5 12 4l8 6.5"/>
             <path d="M6.5 9.5V20h11V9.5"/>
           </svg>
-          <svg v-else-if="item.icon==='route'" viewBox="0 0 44 44" fill="none">
-            <rect x="2" y="2" width="40" height="40" rx="12"/>
-            <rect x="8" y="8" width="28" height="28" rx="8" fill="#39393B" transform="rotate(45 22 22)"/>
-            <path d="M17 27V22C17 20.8954 17.8954 20 19 20H27" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M24 24L27 20L24 16" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg v-else-if="item.icon==='route'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M7 5h7a4 4 0 1 1 0 8H10a4 4 0 0 0 0 8h7"/>
+            <circle cx="7" cy="5" r="2.2"/>
+            <circle cx="17" cy="21" r="2.2"/>
           </svg>
-          <svg v-else-if="item.icon==='users'" viewBox="0 0 44 44" fill="none">
-            <path d="M16.5 32v-2.2a4.3 4.3 0 0 1 4.3-4.3h2.4a4.3 4.3 0 0 1 4.3 4.3V32" stroke="#39393B" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-            <circle cx="22" cy="20" r="4.3" stroke="#39393B" stroke-width="2.2" fill="none"/>
-            <path d="M32 32v-2a3.5 3.5 0 0 0-2.6-3.4" stroke="#39393B" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-            <path d="M28.5 15.5a3.2 3.2 0 0 1 0 6.1" stroke="#39393B" stroke-width="2.2" fill="none"/>
-          </svg>
-          <svg v-else-if="item.icon==='sliders'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M4 6h10"/>
-            <path d="M4 12h16"/>
-            <path d="M10 18h10"/>
-            <circle cx="17" cy="6" r="2.2"/>
-            <circle cx="7" cy="12" r="2.2"/>
-            <circle cx="13" cy="18" r="2.2"/>
+          <svg v-else-if="item.icon==='users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M16.5 21v-1.8a3.7 3.7 0 0 0-3.7-3.7H7.2A3.7 3.7 0 0 0 3.5 19.2V21"/>
+            <circle cx="10.4" cy="9" r="3.4"/>
+            <path d="M20.5 21v-2a3 3 0 0 0-2.2-2.9"/>
+            <path d="M17.2 3.9a3.2 3.2 0 0 1 0 6.1"/>
           </svg>
         </span>
         <span class="label">{{ item.label }}</span>
@@ -100,7 +91,7 @@ function exit() {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 1.7rem;
+  gap: 0.4rem;
   width: 100%;
 }
 
@@ -118,19 +109,17 @@ function exit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 70px; height: 62px;
+  width: 86px; height: 76px;
   background: #f4f5f7;
-  border-radius: 18px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.06), 0 2px 6px 0 rgba(0,0,0,0.10);
+  border-radius: 22px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.85);
   color: #3f3f46;
-  position: relative;
+  transition: background .2s;
 }
 
-.pill svg {
-  width: 44px;
-  height: 44px;
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.10));
-}
+.pill svg { width: 50px; height: 50px; }
+
+.action:active .pill { transform: translateY(2px); }
 
 .label {
   color: #3f3f46;
@@ -155,8 +144,9 @@ function exit() {
 }
 
 @media (max-width: 960px) {
-  .side { width: 180px; }
-  .pill { width: 88px; height: 78px; }
-  .label { font-size: 1.25rem; }
+  .side { width: 170px; }
+  .pill { width: 94px; height: 84px; }
+  .pill svg { width: 56px; height: 56px; }
+  .label { font-size: 1.22rem; }
 }
 </style>
