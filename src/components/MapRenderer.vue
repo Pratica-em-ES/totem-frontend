@@ -84,10 +84,10 @@ onMounted(() => {
 
   container.value.appendChild(renderer.domElement)
 
-    //teste highlight
-    setTimeout(() => {
-    highlightModel('91A')
-     }, 10000)
+  //teste highlight
+  //setTimeout(() => { highlightModel('91A') }, 5000)
+  // teste unhighlight
+  //setTimeout(() => { unhighlightModel('91A') }, 10000)
 })
 
 onBeforeUnmount(() => {
@@ -197,6 +197,22 @@ function highlightModel(modelName: String) {
   })
   console.log(`Highlighted model: ${modelName}`)
 }
+
+function unhighlightModel(modelName: String) {
+   const model = loadedModels.get(modelName as string)
+   if (!model) return
+
+   model.traverse((child) => {
+     if ((child as THREE.Mesh).isMesh) {
+       const mesh = child as THREE.Mesh
+       const originalMat = originalMaterials.get(mesh)
+       if (originalMat) {
+         mesh.material = originalMat
+         originalMaterials.delete(mesh)
+       }
+     }
+   })
+ }
 
 function animate(time: number) {
   // mesh.rotation.x = time / 2000
