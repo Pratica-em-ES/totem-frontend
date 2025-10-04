@@ -83,6 +83,11 @@ onMounted(() => {
   loadModels()
 
   container.value.appendChild(renderer.domElement)
+
+    //teste highlight
+    setTimeout(() => {
+    highlightModel('91A')
+     }, 10000)
 })
 
 onBeforeUnmount(() => {
@@ -123,6 +128,10 @@ function loadModels() {
   models.forEach((modelpath) => {
     loader.load(modelpath, (gltf) => {
       const model = gltf.scene;
+
+      const name = modelpath.split('/').pop()!.replace('.glb', '')
+      loadedModels.set(name, model)
+      
       model.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh
@@ -164,6 +173,29 @@ function loadModels() {
       // scene.add(textMesh)
     })
   })
+}
+
+const loadedModels = new Map<string, THREE.Object3D>()
+const originalMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>()
+
+function highlightModel(modelName: String) {
+  const model = loadedModels.get(modelName as string)
+  if (!model) return
+
+  model.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      const mesh = child as THREE.Mesh
+      if (!originalMaterials.has(mesh)) {
+        originalMaterials.set(mesh, mesh.material)
+      }
+      mesh.material = new THREE.MeshStandardMaterial({
+        color: 0xFF0000,
+        metalness: 0.5,
+        roughness: 0.5,
+      })
+    }
+  })
+  console.log(`Highlighted model: ${modelName}`)
 }
 
 function animate(time: number) {
