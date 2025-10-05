@@ -14,7 +14,28 @@ let camera: THREE.PerspectiveCamera
 let controls: OrbitControls // para poder rotacionar o mapa e controlar zoom
 let resizeObserver: ResizeObserver // para caso o componente pai seja redimensionado em vez da tela
 
-onMounted(() => {
+type Building = {
+  name: string
+  modelPath: string
+  coordinate: {
+    x: number
+    y: number
+  }
+};
+
+type Street = {
+  width: number
+  coordinateA: {
+    x: number
+    y: number
+  }
+  coordinateB: {
+    x: number
+    y: number
+  }
+};
+
+onMounted(async () => {
   if (!container.value) return
 
   const width: number = container.value.clientWidth
@@ -79,10 +100,22 @@ onMounted(() => {
   resizeObserver = new ResizeObserver(() => onResize())
   resizeObserver.observe(container.value)
   
-  loadGround()
-  loadModels()
-
   container.value.appendChild(renderer.domElement)
+
+  const fetchScene = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/map");  // TODO: Mudar o endpoint para o correto
+      const data = await res.json(); // Pega o corpo da resposta e transforma em JSON
+      // console.log("Dados do endpoint:", data);
+      // setStands(data.stands);  // Atualiza o estado com os dados recebidos da API
+      // setRoads(data.roads);  // Atualiza o estado com os dados recebidos da API
+      loadGround(data.streets)
+      loadModels(data.buildings)
+    } catch (err) {
+      console.error("Erro ao buscar configuração do Mapscene:", err);
+    }
+  };
+  fetchScene();  // Chama a função para buscar os dados quando o componente é montado
 })
 
 onBeforeUnmount(() => {
@@ -92,23 +125,8 @@ onBeforeUnmount(() => {
   renderer?.dispose()
 })
 
-function loadModels() {
-  const models: string[] = [
-    '/models/91A.glb',
-    '/models/91B.glb',
-    '/models/92A.glb',
-    '/models/93.glb',
-    '/models/94.glb',
-    '/models/95A.glb',
-    '/models/95c.glb',
-    '/models/96.glb',
-    '/models/96A.glb',
-    '/models/96BCDF.glb',
-    '/models/96j.glb',
-    '/models/97.glb',
-    '/models/99A.glb',
-    '/models/tecnopuc.glb',
-  ]
+function loadModels(data: Building[]) {
+  const models: Building[] = data
   
   // falhará se o modelo não existir na pasta public. O cubo ainda será renderizado
   // modelos podem ser carregados assincronamente.
@@ -120,8 +138,8 @@ function loadModels() {
   fontLoader.load('/fonts/League-Spartan.json', (loadedFont) => {
     font = loadedFont
   })
-  models.forEach((modelpath) => {
-    loader.load(modelpath, (gltf) => {
+  models.forEach(({name, modelPath, coordinate}) => {
+    loader.load(modelPath, (gltf) => {
       const model = gltf.scene;
       model.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
@@ -133,9 +151,8 @@ function loadModels() {
           // mesh.castShadow = true
         }
       })
-      model.position.set(0,0.1,0)
+      model.position.set(coordinate.x, 0.1, coordinate.y)
       scene.add(model)
-
 
       // Labels!!
       // const box = new THREE.Box3().setFromObject(model)
@@ -182,180 +199,10 @@ function onResize() {
   renderer.setSize(width, height)
 }
 
-function loadGround() {
-  type RoadObj = {
-    width: number
-    points: number[][]
-  };
-
+function loadGround(streets: Street[]) {
   let worldSize = 90
-  const roads: RoadObj[] = [
-    /* 1 ─ Norte-sul longo */
-    {
-      width: 3,
-      points: [
-        [-13, 28],
-        [-13, -26],
-      ],
-    },
-    /* 2 ─ Diagonal curta (próximo aos prédios verdes) */
-    {
-      width: 3,
-      points: [
-        [31.45, 8.56],
-        [19, 18.29],
-      ],
-    },
-    /* 3 ─ Diagonal longa no canto superior-dir. */
-    {
-      width: 3,
-      points: [
-        [30, 29],
-        [13.5, 12.9],
-      ],
-    },
-    /* 4 ─ Rua leste-oeste (altura z ≈ 13) */
-    {
-      width: 3,
-      points: [
-        [13, 13],
-        [-13, 13],
-      ],
-    },
-    /* 5 ─ Rua leste-oeste (altura z ≈ -22) */
-    {
-      width: 3,
-      points: [
-        [-13, -22],
-        [17.73, -22],
-      ],
-    },
-    /* 6 ─ Avenida norte-sul pelo x ≈ 13 */
-    {
-      width: 3,
-      points: [
-        [13, 36],
-        [13, -20],
-      ],
-    },
-    /* 7 ─ Rua leste-oeste (altura z ≈ -1.5) */
-    {
-      width: 3,
-      points: [
-        [-13, -1.5],
-        [13, -1.5],
-      ],
-    },
-    /* 8 ─ Rua leste-oeste (altura z ≈ 28) */
-    {
-      width: 3,
-      points: [
-        [-13, 28],
-        [12, 28],
-      ],
-    },
-    /* 9 ─ Via larga (12 u) descendo pelo x ≈ 15 */
-    {
-      width: 12,
-      points: [
-        [17, -21],
-        [17, -29.5],
-      ],
-    },
-    /* 10 ─ Extensão no extremo esquerdo */
-    {
-      width: 3,
-      points: [
-        [-14, 21],
-        [-31, 21],
-      ],
-    },
-    {
-      width: 3,
-      points: [
-        [-31, 21],
-        [-31, 30.08],
-      ],
-    },
-    /*PORTAS */
-    {
-      width: 3,
-      points: [
-        [-18.66, 10.5],
-        [-14.1, 10.5],
-      ],
-    },
-    /* 11 ─ Extensão no extremo direito */
-    {
-      width: 3,
-      points: [
-        [3.2, 4.58],
-        [3.2, -0.25],
-      ],
-    },
-    /* 12 ─ Extensão no extremo direito */
-    {
-      width: 3,
-      points: [
-        [0.7, 14.14],
-        [1.03, 17.37],
-      ],
-    },
-    /* 13 ─ Extensão no extremo direito */
-    {
-      width: 3,
-      points: [
-        [3.1, 29.22],
-        [3.1, 32.76],
-      ],
-    },
-    {
-      width: 3,
-      points: [
-        [-17.95, -11.01],
-        [-13.71, -11.11],
-      ],
-    },
-    /*caminho do predio vermelho*/
-    {
-      width: 3,
-      points: [
-        [12.77, -30.41],
-        [11.31, -38.15],
-      ],
-    },
-    {
-      width: 3,
-      points: [
-        [11.07, -38.85],
-        [6.99, -38.85],
-      ],
-    },
-    {
-      width: 3,
-      points: [
-        [3.16, -30.6],
-        [6.51, -38.57],
-      ],
-    },
-    {
-      width: 3,
-      points: [
-        [4.76, -11],
-        [11.8, -11],
-      ],
-    },
-    /*CAMINHO ENTRADA PRINCIPAL*/
-    {
-      width: 4,
-      points: [
-        [26.9, -25.08],
-        [34.52, -33.1],
-        [35.59, -37.6],
-        [44.66, -40.07],
-      ],
-    },
-  ]
+  const roads: Street[] = streets
+  console.log(roads)
 
   // RUAS
   const sizePx = 2048
@@ -371,18 +218,14 @@ function loadGround() {
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
     ctx.strokeStyle = 'rgba(255,255,255,1)'
-    roads.forEach(({ points, width }) => {
+    roads.forEach(({width, coordinateA, coordinateB}) => {
       // Line width proportional to canvas size and world size
       ctx.lineWidth = width * (sizePx / worldSize)
       ctx.beginPath()
-      points.forEach(([x, z], i) => {
-        const [px, pz] = mapToCanvas(x, z)
-        if (i === 0) {
-          ctx.moveTo(px, pz)
-        } else {
-          ctx.lineTo(px, pz)
-        }
-      })
+      const [px1, pz1] = mapToCanvas(coordinateA.x, coordinateA.y)
+      const [px2, pz2] = mapToCanvas(coordinateB.x, coordinateB.y)
+      ctx.moveTo(px1, pz1)
+      ctx.lineTo(px2, pz2)
       ctx.stroke()
     })
   }
