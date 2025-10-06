@@ -115,7 +115,11 @@ onMounted(async () => {
       console.error("Erro ao buscar configuração do Mapscene:", err);
     }
   };
-  fetchScene();  // Chama a função para buscar os dados quando o componente é montado
+  await fetchScene();  // Chama a função para buscar os dados quando o componente é montado
+  //teste highlight
+  setTimeout(() => { highlightModel('91 A') }, 5000)
+  // teste unhighlight
+  setTimeout(() => { unhighlightModel('91 A') }, 10000)
 })
 
 onBeforeUnmount(() => {
@@ -141,6 +145,10 @@ function loadModels(data: Building[]) {
   models.forEach(({name, modelPath, coordinate}) => {
     loader.load(modelPath, (gltf) => {
       const model = gltf.scene;
+
+      // const name = modelpath.split('/').pop()!.replace('.glb', '')
+      loadedModels.set(name, model)
+      
       model.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh
@@ -215,6 +223,45 @@ function loadModels(data: Building[]) {
     })
   })
 }
+
+const loadedModels = new Map<string, THREE.Object3D>()
+const originalMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>()
+
+function highlightModel(modelName: String) {
+  const model = loadedModels.get(modelName as string)
+  if (!model) return
+
+  model.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      const mesh = child as THREE.Mesh
+      if (!originalMaterials.has(mesh)) {
+        originalMaterials.set(mesh, mesh.material)
+      }
+      mesh.material = new THREE.MeshStandardMaterial({
+        color: 0xFF0000,
+        metalness: 0.5,
+        roughness: 0.5,
+      })
+    }
+  })
+  console.log(`Highlighted model: ${modelName}`)
+}
+
+function unhighlightModel(modelName: String) {
+   const model = loadedModels.get(modelName as string)
+   if (!model) return
+
+   model.traverse((child) => {
+     if ((child as THREE.Mesh).isMesh) {
+       const mesh = child as THREE.Mesh
+       const originalMat = originalMaterials.get(mesh)
+       if (originalMat) {
+         mesh.material = originalMat
+         originalMaterials.delete(mesh)
+       }
+     }
+   })
+ }
 
 function animate(time: number) {
   // mesh.rotation.x = time / 2000
