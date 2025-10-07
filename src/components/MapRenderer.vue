@@ -117,9 +117,9 @@ onMounted(async () => {
   };
   await fetchScene();  // Chama a função para buscar os dados quando o componente é montado
   //teste highlight
-  setTimeout(() => { highlightModel('91 A') }, 5000)
-  // teste unhighlight
-  setTimeout(() => { unhighlightModel('91 A') }, 10000)
+  //setTimeout(() => { highlightModel('91 A') }, 5000)
+  //teste unhighlight
+  //setTimeout(() => { unhighlightModel('91 A') }, 10000)
 })
 
 onBeforeUnmount(() => {
