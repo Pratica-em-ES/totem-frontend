@@ -28,8 +28,6 @@ function exit() {
 
 <template>
   <aside class="side">
-    <p class="greet">Olá, <strong>Visitante!</strong></p>
-
     <nav class="stack" aria-label="Navegação principal">
       <button
         v-for="item in items"
@@ -74,7 +72,7 @@ function exit() {
   background: #fff;
   min-height: 100dvh;
   box-shadow: 2px 0 12px 0 rgba(0,0,0,0.04);
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .greet {
@@ -130,8 +128,8 @@ function exit() {
 }
 
 .exit {
-  margin-top: 0.25rem;
-  margin-bottom: 2.5rem;
+  margin-top: 2rem;
+  margin-bottom: 0;
   align-self: center;
   background: none;
   border: none;
