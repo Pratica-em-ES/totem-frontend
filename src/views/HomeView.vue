@@ -2,12 +2,14 @@
 <script setup lang="ts">
 import SideMenu from '@/components/SideMenu.vue'
 import EmptyPlaceholder from '@/components/EmptyPlaceholder.vue'
+import SearchBar from '@/components/SearchBar.vue';
 </script>
 
 <template>
   <main class="screen">
     <SideMenu />
     <section class="content" aria-label="Área principal">
+      <SearchBar />
       <EmptyPlaceholder />
     </section>
   </main>
