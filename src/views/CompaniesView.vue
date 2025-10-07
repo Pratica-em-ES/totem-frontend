@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import SideMenu from '@/components/SideMenu.vue'
 import CompanyList from '@/components/CompanyList.vue'
+import SearchBar from '@/components/SearchBar.vue';
 </script>
 
 <template>
   <main class="screen">
     <SideMenu />
     <section class="content" aria-label="Empresas">
+      <SearchBar/>
       <CompanyList />
     </section>
   </main>
