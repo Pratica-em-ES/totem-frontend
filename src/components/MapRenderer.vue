@@ -263,6 +263,13 @@ function unhighlightModel(modelName: String) {
    })
  }
 
+ function highlightN(modelNames: string[]) {
+  modelNames.forEach(name => highlightModel(name))
+}
+
+function unhighlightN(modelNames: string[]) {
+  modelNames.forEach(name => unhighlightModel(name))
+}
 function animate(time: number) {
   // mesh.rotation.x = time / 2000
   // mesh.rotation.y = time / 1000
@@ -357,6 +364,17 @@ function loadGround(streets: Street[]) {
   grassPlane.receiveShadow = true
   grassPlane.setRotationFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))
   scene.add(grassPlane)
+  
+  // @ts-ignore
+  window.highlightModel = highlightModel
+  // @ts-ignore
+  window.unhighlightModel = unhighlightModel
+  // @ts-ignore
+  window.highlightN = highlightN
+  // @ts-ignore
+  window.loadedModels = loadedModels
+  // @ts-ignore
+  window.unhighlightN = unhighlightN 
 }
 </script>
 
