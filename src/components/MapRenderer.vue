@@ -17,19 +17,19 @@ let resizeObserver: ResizeObserver // para caso o componente pai seja redimensio
 type Building = {
   name: string
   modelPath: string
-  coordinate: {
+  node: {
     x: number
     y: number
   }
 };
 
-type Street = {
+type Edge = {
   width: number
-  coordinateA: {
+  nodeA: {
     x: number
     y: number
   }
-  coordinateB: {
+  nodeB: {
     x: number
     y: number
   }
@@ -109,7 +109,7 @@ onMounted(async () => {
       console.log("Dados do endpoint:", data);
       // setStands(data.stands);  // Atualiza o estado com os dados recebidos da API
       // setRoads(data.roads);  // Atualiza o estado com os dados recebidos da API
-      loadGround(data.streets)
+      loadGround(data.edges)
       loadModels(data.buildings)
     } catch (err) {
       console.error("Erro ao buscar configuração do Mapscene:", err);
@@ -142,8 +142,8 @@ function loadModels(data: Building[]) {
   fontLoader.load('/fonts/League-Spartan.json', (loadedFont) => {
     font = loadedFont
   })
-  models.forEach(({name, modelPath, coordinate}) => {
-    loader.load(modelPath, (gltf) => {
+  models.forEach((building: Building) => {
+    loader.load(building.modelPath, (gltf) => {
       const model = gltf.scene;
 
       // const name = modelpath.split('/').pop()!.replace('.glb', '')
@@ -159,7 +159,7 @@ function loadModels(data: Building[]) {
           // mesh.castShadow = true
         }
       })
-      model.position.set(coordinate.x, 0.1, coordinate.y)
+      model.position.set(building.node.x, 0.1, building.node.y)
       scene.add(model)
 
       if (name === 'tecnopuc') {
@@ -298,12 +298,12 @@ function loadGround(streets: Street[]) {
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
     ctx.strokeStyle = 'rgba(255,255,255,1)'
-    roads.forEach(({width, coordinateA, coordinateB}) => {
+    roads.forEach((edge: Edge) => {
       // Line width proportional to canvas size and world size
-      ctx.lineWidth = width * (sizePx / worldSize)
+      ctx.lineWidth = edge.width * (sizePx / worldSize)
       ctx.beginPath()
-      const [px1, pz1] = mapToCanvas(coordinateA.x, coordinateA.y)
-      const [px2, pz2] = mapToCanvas(coordinateB.x, coordinateB.y)
+      const [px1, pz1] = mapToCanvas(edge.nodeA.x, edge.nodeA.y)
+      const [px2, pz2] = mapToCanvas(edge.nodeB.x, edge.nodeB.y)
       ctx.moveTo(px1, pz1)
       ctx.lineTo(px2, pz2)
       ctx.stroke()
