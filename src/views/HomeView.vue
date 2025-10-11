@@ -3,13 +3,18 @@
 import SideMenu from '@/components/SideMenu.vue'
 import EmptyPlaceholder from '@/components/EmptyPlaceholder.vue'
 import SearchBar from '@/components/SearchBar.vue';
+
+function onSearch(payload: { query: string; category: string }) {
+  console.log('Home search:', payload);
+  // TODO: wire to store or API
+}
 </script>
 
 <template>
   <main class="screen">
     <SideMenu />
     <section class="content" aria-label="Área principal">
-      <SearchBar />
+      <SearchBar @search="onSearch" />
       <EmptyPlaceholder />
     </section>
   </main>
@@ -24,6 +29,9 @@ import SearchBar from '@/components/SearchBar.vue';
   padding: 1rem 1.25rem;
 }
 
-.content { display: grid; }
+.content { 
+  display:flex; 
+  flex-direction:column;
+}
 
 </style>

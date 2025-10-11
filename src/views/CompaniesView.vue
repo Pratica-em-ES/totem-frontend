@@ -2,13 +2,18 @@
 import SideMenu from '@/components/SideMenu.vue'
 import CompanyList from '@/components/CompanyList.vue'
 import SearchBar from '@/components/SearchBar.vue';
+
+function onSearch(payload: { query: string; category: string }) {
+  console.log('Companies search:', payload);
+  // TODO: use payload to filter CompanyList
+}
 </script>
 
 <template>
   <main class="screen">
     <SideMenu />
     <section class="content" aria-label="Empresas">
-      <SearchBar/>
+      <SearchBar @search="onSearch" />
       <CompanyList />
     </section>
   </main>

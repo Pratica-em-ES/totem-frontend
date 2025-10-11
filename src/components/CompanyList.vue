@@ -71,9 +71,6 @@ defineExpose({ setSearch(value: string) { filterTerm.value = value } })
 
 <template>
   <div class="companies-wrapper">
-    <!-- Espaço reservado para a futura search bar / filtros -->
-    <div class="toolbar-space" aria-hidden="true"></div>
-
     <div class="list" role="list">
       <CompanyCard
         v-for="c in companies"
@@ -90,14 +87,14 @@ defineExpose({ setSearch(value: string) { filterTerm.value = value } })
 
 <style scoped>
 .companies-wrapper { 
-  display:flex; flex-direction:column; gap:1.9rem;
+  display:flex; flex-direction:column; gap:1.2rem;
   flex:1 1 auto;
   min-height: 0;
 }
-.toolbar-space { height: 70px; flex: 0 0 auto; }
 .list { 
   display:flex; flex-direction:column; gap:2.4rem; padding-right: 1rem; 
   flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding-bottom:1rem;
+  margin-top: 12px; /* small space under search bar */
 }
 
 .list::-webkit-scrollbar { width: 12px; }

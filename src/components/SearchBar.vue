@@ -1,80 +1,114 @@
 <template>
-  <div class="flex items-stretch border rounded overflow-hidden **w-fit** max-w-xl search">
-    <DropdownMenuFilter class = "dropdown flex-none"/>
+  <div class="search-wrapper">
+    <div class="search">
+      <div class="left">
+        <DropdownMenuFilter v-model="selectedCategory" :categories="categories" />
+      </div>
 
-    <input
-      type="text"
-      v-model="searchQuery"
-      placeholder="Pesquisar"
-      class="flex-1 outline-none"
-    />
+      <input
+        type="text"
+        v-model="searchQuery"
+        placeholder="Pesquisar"
+        @keyup.enter="onSearch"
+        aria-label="Pesquisar"
+      />
 
-    <button
-      @click="onSearch"
-      class="bg-yellow-600 text-white flex-none hover:bg-yellow-700"
-    >
-      🔍
-    </button>
+      <button class="search-btn" type="button" @click="onSearch" aria-label="Buscar">
+        <!-- minimal white magnifier SVG -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z" stroke="none" fill="white" opacity="0.95"/>
+          <path d="M21 21l-4.35-4.35" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
-//import { allCategories } from "@/services/categoryService"; // adjust your import
 
-const categories = ref([]);
-const selectedCategory = ref("all");
+const props = defineProps({
+  categoriesProp: { type: Array, default: () => ["Todas", "Instituição", "Serviço", "Outro"] }
+});
+const emit = defineEmits(["search"]);
+
+const categories = ref(props.categoriesProp);
+const selectedCategory = ref("Todas");
 const searchQuery = ref("");
 
-// load categories
 onMounted(() => {
-  categories.value = ["Todas", "Categoria 1", "Categoria 2"];
-  // if async: allCategories().then(res => categories.value = res)
+  // ensure default
+  if (!selectedCategory.value) selectedCategory.value = "Todas";
 });
 
-// search action
 function onSearch() {
-  console.log("Searching:", searchQuery.value, "in", selectedCategory.value);
-  // emit event or call API here
+  emit('search', { query: searchQuery.value, category: selectedCategory.value });
 }
 </script>
 
 <style scoped>
-/* Optional: you can adjust styles without Tailwind if not using it */
+.search-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .search {
-  border: solid #ddd 1px;
-  height: 10%;
-  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  margin-right: 22px;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(16,24,40,0.06);
+  border: 1px solid rgba(0,0,0,0.04);
+  max-width: 1105px;
+  width: 100%;
+  padding-left: 0;
+}
+
+.search .left {
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  padding-right: 8px;
+  background: #f3f4f6;
+  border-right: 1px solid rgba(0,0,0,0.06);
+  margin-left: -1px;
+  height: 100%;
   box-sizing: border-box;
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
 }
 
-input {
-  font-size: 1rem;
+  input[type="text"] {
   border: none;
-  width: 120vh;
-  padding-left: 16px;
-  padding-right: 16px;
-  flex-grow: 1;
-}
-
-input:focus {
   outline: none;
+  flex: 1 1 auto;
+    padding: 10px 12px;
+  font-size: 14px;
+  color: #111827;
+  background: transparent;
 }
 
-input:active {
-  outline: none;
+input::placeholder {
+  color: #9ca3af;
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  height: 100%;
-  width: 6vh;
-  background-color: #D2AB66;
-}
+  .search-btn {
+    background: #D2AB66;
+    border: none;
+    color: white;
+    padding: 10px 12px;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-.dropdown {
-  height: 100%;
-}
+.search-btn:hover { filter: brightness(0.95); }
+
+  .search-btn svg { display: block; }
 </style>
