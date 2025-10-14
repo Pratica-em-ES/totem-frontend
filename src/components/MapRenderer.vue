@@ -238,7 +238,7 @@ function highlightModel(modelName: String) {
         originalMaterials.set(mesh, mesh.material)
       }
       mesh.material = new THREE.MeshStandardMaterial({
-        color: 0xFF0000,
+        color: 0xFFFF00,
         metalness: 0.5,
         roughness: 0.5,
       })
