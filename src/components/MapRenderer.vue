@@ -3,7 +3,6 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js' // para carregar os arquivos dos modelos
-import { TextGeometry } from 'three/addons/geometries/TextGeometry.js' // para as labels dos predios
 import { FontLoader } from 'three/addons/loaders/FontLoader.js'
 
 const container = ref<HTMLDivElement | null>(null)
@@ -104,11 +103,8 @@ onMounted(async () => {
 
   const fetchScene = async () => {
     try {
-      const res = await fetch("http://localhost:8080/map");  // TODO: Mudar o endpoint para o correto
-      const data = await res.json(); // Pega o corpo da resposta e transforma em JSON
-      console.log("Dados do endpoint:", data);
-      // setStands(data.stands);  // Atualiza o estado com os dados recebidos da API
-      // setRoads(data.roads);  // Atualiza o estado com os dados recebidos da API
+      const res = await fetch("http://localhost:8080/map");
+      const data = await res.json();
       loadGround(data.edges)
       loadModels(data.buildings)
     } catch (err) {
@@ -139,15 +135,35 @@ function loadModels(data: Building[]) {
   const fontLoader = new FontLoader();
 
   let font: any
-  fontLoader.load('/fonts/League-Spartan.json', (loadedFont) => {
-    font = loadedFont
-  })
+  let fontLoaded = false
+  const pendingLabels: Array<{name: string, model: THREE.Object3D}> = []
+  
+  fontLoader.load('/fonts/League-Spartan.json', 
+    (loadedFont) => {
+      font = loadedFont
+      fontLoaded = true
+      
+      // Processar labels que estavam esperando pela fonte
+      pendingLabels.forEach(({name, model}) => {
+        createLabel(name, model, font)
+      })
+      pendingLabels.length = 0
+    },
+    undefined,
+    (error) => {
+      console.error('Falha ao carregar fonte:', error)
+    }
+  )
+  
   models.forEach((building: Building) => {
-    loader.load(building.modelPath, (gltf) => {
-      const model = gltf.scene;
+    const name = building.name
+    
+    loader.load(
+      building.modelPath, 
+      (gltf) => {
+        const model = gltf.scene;
 
-      // const name = modelpath.split('/').pop()!.replace('.glb', '')
-      loadedModels.set(name, model)
+        loadedModels.set(name, model)
       
       model.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
@@ -167,59 +183,15 @@ function loadModels(data: Building[]) {
       }
 
       // Labels!!
-      const box = new THREE.Box3().setFromObject(model)
-      const size = new THREE.Vector3()
-      const center = new THREE.Vector3()
-      box.getSize(size)
-      box.getCenter(center)
-      
-      let shape = font.generateShapes(name, name.length < 5 ? 3.125 : 2.625)
-	    let geometryS = new THREE.ShapeGeometry(shape)
-      geometryS.computeBoundingBox()
-
-      // Adaptado daqui: https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_text_shapes.html#L76
-      const holeShapes = [];
-			for ( let i = 0; i < shape.length; i ++ ) {
-				const sh = shape[i];
-				if ( sh.holes && sh.holes.length > 0 ) {
-					for ( let j = 0; j < sh.holes.length; j ++ ) {
-						const hole = sh.holes[j];
-						holeShapes.push(hole);
-					}
-				}
+      if (fontLoaded && font) {
+        createLabel(name, model, font)
+      } else {
+        pendingLabels.push({name, model})
       }
-
-      shape.push( ...holeShapes );
-			const lineText = new THREE.Object3D();
-			for ( let i = 0; i < shape.length; i ++ ) {
-				const sh = shape[ i ];
-				const points = sh.getPoints();
-				const geometry = new THREE.BufferGeometry().setFromPoints(points);
-				const lineMesh = new THREE.Line( geometry, new THREE.LineBasicMaterial({ color:0x000000 }));
-				lineText.add(lineMesh);
-			}
-      // fim da adaptacao
-
-      const textBox = new THREE.Box3().setFromObject(new THREE.Mesh(geometryS))
-      const textBoxSize = new THREE.Vector3()
-      const textBoxCenter = new THREE.Vector3()
-      textBox.getSize(textBoxSize)
-      textBox.getCenter(textBoxCenter)      
-      
-      const corner = [center.x - size.x/2, center.y + size.y/2, center.z - size.z/2]
-      const labelPos = [(size.x - textBoxSize.y) / 2, 0, (size.z - textBoxSize.x) / 2]
-      // labelPos[0] += 1.5
-      // labelPos[2] -= 3
-      const textMesh = new THREE.Mesh(geometryS, new THREE.MeshBasicMaterial({ color: 0xffffff }))
-      textMesh.rotation.set(-Math.PI / 2, 0, -Math.PI / 2)
-      textMesh.position.set(labelPos[0] + corner[0], labelPos[1] + corner[1] + 0.1, labelPos[2] + corner[2])
-      
-      // const contourMesh = new THREE.Mesh(contourGeo, new THREE.MeshBasicMaterial({ color: 0x000000 }))
-      // contou.scale.set(.5, .5, .5)
-      // contourMesh.position.x -= .5
-      textMesh.add(lineText)
-      
-      scene.add(textMesh)
+    },
+    undefined,
+    (error) => {
+      console.error('Falha ao carregar modelo:', name, error)
     })
   })
 }
@@ -227,9 +199,65 @@ function loadModels(data: Building[]) {
 const loadedModels = new Map<string, THREE.Object3D>()
 const originalMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>()
 
-function highlightModel(modelName: String) {
-  const model = loadedModels.get(modelName as string)
-  if (!model) return
+function createLabel(name: string, model: THREE.Object3D, font: any) {
+  try {
+    const box = new THREE.Box3().setFromObject(model)
+    const size = new THREE.Vector3()
+    const center = new THREE.Vector3()
+    box.getSize(size)
+    box.getCenter(center)
+    
+    let shape = font.generateShapes(name, name.length < 5 ? 3.125 : 2.625)
+    let geometryS = new THREE.ShapeGeometry(shape)
+    geometryS.computeBoundingBox()
+
+    // Adaptado daqui: https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_text_shapes.html#L76
+    const holeShapes = [];
+    for (const sh of shape) {
+      if (sh.holes && sh.holes.length > 0) {
+        for (const hole of sh.holes) {
+          holeShapes.push(hole);
+        }
+      }
+    }
+
+    shape.push(...holeShapes);
+    const lineText = new THREE.Object3D();
+    for (const sh of shape) {
+      const points = sh.getPoints();
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const lineMesh = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x000000 }));
+      lineText.add(lineMesh);
+    }
+    // fim da adaptacao
+
+    const textBox = new THREE.Box3().setFromObject(new THREE.Mesh(geometryS))
+    const textBoxSize = new THREE.Vector3()
+    const textBoxCenter = new THREE.Vector3()
+    textBox.getSize(textBoxSize)
+    textBox.getCenter(textBoxCenter)      
+    
+    const corner = [center.x - size.x/2, center.y + size.y/2, center.z - size.z/2]
+    const labelPos = [(size.x - textBoxSize.y) / 2, 0, (size.z - textBoxSize.x) / 2]
+    
+    const textMesh = new THREE.Mesh(geometryS, new THREE.MeshBasicMaterial({ color: 0xffffff }))
+    textMesh.rotation.set(-Math.PI / 2, 0, -Math.PI / 2)
+    textMesh.position.set(labelPos[0] + corner[0], labelPos[1] + corner[1] + 0.1, labelPos[2] + corner[2])
+    
+    textMesh.add(lineText)
+    
+    scene.add(textMesh)
+  } catch (error) {
+    console.error('Falha ao criar label para', name, ':', error)
+  }
+}
+
+function highlightModel(modelName: string) {
+  const model = loadedModels.get(modelName)
+  if (!model) {
+    console.error('Modelo não encontrado:', modelName)
+    return
+  }
 
   model.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) {
@@ -244,12 +272,14 @@ function highlightModel(modelName: String) {
       })
     }
   })
-  console.log(`Highlighted model: ${modelName}`)
 }
 
-function unhighlightModel(modelName: String) {
-   const model = loadedModels.get(modelName as string)
-   if (!model) return
+function unhighlightModel(modelName: string) {
+   const model = loadedModels.get(modelName)
+   if (!model) {
+     console.error('Modelo não encontrado para unhighlight:', modelName)
+     return
+   }
 
    model.traverse((child) => {
      if ((child as THREE.Mesh).isMesh) {
@@ -289,7 +319,6 @@ function onResize() {
 function loadGround(streets: Street[]) {
   let worldSize = 90
   const roads: Street[] = streets
-  console.log(roads)
 
   // RUAS
   const sizePx = 2048
