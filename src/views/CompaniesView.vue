@@ -2,21 +2,11 @@
 import { ref, computed } from 'vue'
 import SideMenu from '@/components/SideMenu.vue'
 import CompanyList from '@/components/CompanyList.vue'
-import SearchBar from '@/components/SearchBar.vue'
-import type { SearchFilters, Company } from '@/components/CompanyList.vue'
+import SearchBar from '@/components/SearchBar.vue';
 
-const companyListRef = ref<InstanceType<typeof CompanyList>>()
-const searchBarRef = ref<InstanceType<typeof SearchBar>>()
-
-// Get companies data from CompanyList
-const companies = computed(() => {
-  return companyListRef.value?.rawCompanies || []
-})
-
-const handleFiltersChanged = (filters: SearchFilters) => {
-  if (companyListRef.value) {
-    companyListRef.value.handleFiltersChanged(filters)
-  }
+function onSearch(payload: { query: string; category: string }) {
+  console.log('Companies search:', payload);
+  // TODO: use payload to filter CompanyList
 }
 </script>
 
@@ -24,12 +14,8 @@ const handleFiltersChanged = (filters: SearchFilters) => {
   <main class="screen">
     <SideMenu />
     <section class="content" aria-label="Empresas">
-      <SearchBar 
-        ref="searchBarRef"
-        :companies="companies"
-        @filters-changed="handleFiltersChanged"
-      />
-      <CompanyList ref="companyListRef" />
+      <SearchBar @search="onSearch" />
+      <CompanyList />
     </section>
   </main>
 </template>
