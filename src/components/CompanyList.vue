@@ -12,6 +12,13 @@ export interface Company {
   tags?: string[]
 }
 
+export interface SearchFilters {
+  searchTerm: string
+  building: string
+  floor: string
+  tag: string
+}
+
 const rawCompanies = ref<Company[]>([{
   id: '1',
   name: 'Apple Developer Academy',
@@ -56,17 +63,58 @@ const rawCompanies = ref<Company[]>([{
   tags: ['gpu','ai']
 }])
 
-// Placeholder para futura filtragem/pesquisa.
-const filterTerm = ref('')
-
-const companies = computed(() => {
-  const term = filterTerm.value.trim().toLowerCase()
-  if (!term) return rawCompanies.value
-  return rawCompanies.value.filter(c => c.name.toLowerCase().includes(term) || c.description.toLowerCase().includes(term))
+const currentFilters = ref<SearchFilters>({
+  searchTerm: '',
+  building: '',
+  floor: '',
+  tag: ''
 })
 
-// Export leve para futura integração da search bar externa.
-defineExpose({ setSearch(value: string) { filterTerm.value = value } })
+const companies = computed(() => {
+  let filtered = rawCompanies.value
+
+  // Search term filter
+  if (currentFilters.value.searchTerm) {
+    const term = currentFilters.value.searchTerm.trim().toLowerCase()
+    filtered = filtered.filter(c => 
+      c.name.toLowerCase().includes(term) || 
+      c.description.toLowerCase().includes(term)
+    )
+  }
+
+  // Building filter
+  if (currentFilters.value.building) {
+    filtered = filtered.filter(c => c.building === currentFilters.value.building)
+  }
+
+  // Floor filter
+  if (currentFilters.value.floor) {
+    filtered = filtered.filter(c => c.floor === currentFilters.value.floor)
+  }
+
+  // Tag filter
+  if (currentFilters.value.tag) {
+    filtered = filtered.filter(c => 
+      c.tags && c.tags.includes(currentFilters.value.tag)
+    )
+  }
+
+  return filtered
+})
+
+const handleFiltersChanged = (filters: SearchFilters) => {
+  currentFilters.value = filters
+}
+
+// Export for external integration
+defineExpose({ 
+  setSearch(value: string) { 
+    currentFilters.value.searchTerm = value 
+  },
+  handleFiltersChanged,
+  companies: computed(() => companies.value),
+  rawCompanies: computed(() => rawCompanies.value)
+})
 </script>
 
 <template>
@@ -81,6 +129,11 @@ defineExpose({ setSearch(value: string) { filterTerm.value = value } })
         :description="c.description"
         :logo-url="c.logoUrl || undefined"
       />
+      
+      <div v-if="companies.length === 0" class="no-results">
+        <p>Nenhuma empresa encontrada com os filtros aplicados.</p>
+        <p>Tente ajustar os critérios de busca.</p>
+      </div>
     </div>
   </div>
 </template>
@@ -101,4 +154,27 @@ defineExpose({ setSearch(value: string) { filterTerm.value = value } })
 .list::-webkit-scrollbar-track { background: transparent; }
 .list::-webkit-scrollbar-thumb { background:#d4d4d8; border-radius: 8px; border:3px solid #f5f5f8; }
 .list:hover::-webkit-scrollbar-thumb { background:#c1c1c7; }
+
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #6c757d;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.no-results p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.no-results p:first-child {
+  font-weight: 500;
+  color: #495057;
+}
 </style>
