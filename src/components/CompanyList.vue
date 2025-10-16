@@ -16,13 +16,15 @@ const rawCompanies = ref<Company[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-const convertToCompany = (dto: CompanyDTO): Company => ({
-  id: dto.id,
-  name: dto.name,
-  building: dto.building,
-  description: dto.description,
-  category: dto.category
-})
+const convertToCompany = (dto: CompanyDTO): Company => {
+  return {
+    id: dto.id,
+    name: dto.name,
+    building: dto.building,
+    description: dto.description,
+    category: dto.category
+  }
+}
 
 const loadCompanies = async () => {
   try {
@@ -45,15 +47,11 @@ onMounted(() => {
 export interface SearchFilters {
   searchTerm: string
   building: string
-  floor: string
-  tag: string
 }
 
 const currentFilters = ref<SearchFilters>({
   searchTerm: '',
   building: '',
-  floor: '',
-  tag: ''
 })
 
 const companies = computed(() => {
@@ -71,18 +69,6 @@ const companies = computed(() => {
   // Building filter
   if (currentFilters.value.building) {
     filtered = filtered.filter(c => c.building === currentFilters.value.building)
-  }
-
-  // Floor filter
-  if (currentFilters.value.floor) {
-    filtered = filtered.filter(c => c.floor === currentFilters.value.floor)
-  }
-
-  // Tag filter
-  if (currentFilters.value.tag) {
-    filtered = filtered.filter(c => 
-      c.tags && c.tags.includes(currentFilters.value.tag)
-    )
   }
 
   return filtered
