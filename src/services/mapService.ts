@@ -15,6 +15,8 @@ let renderer: THREE.WebGLRenderer | null = null
 let scene: THREE.Scene | null = null
 let camera: THREE.PerspectiveCamera | null = null
 let controls: OrbitControls | null = null
+let mousePointer: THREE.Vector2
+let raycaster: THREE.Raycaster
 let animationRunning = false
 
 const loadedModels = new Map<string, THREE.Object3D>()
@@ -25,6 +27,9 @@ async function initIfNeeded(containerSize?: { w: number, h: number }) {
     initialized = true
 
     scene = new THREE.Scene()
+    raycaster = new THREE.Raycaster()
+    raycaster.params.Line.threshold = 3
+    mousePointer = new THREE.Vector2()
 
     camera = new THREE.PerspectiveCamera(10, (containerSize?.w ?? 1) / (containerSize?.h ?? 1), 0.01, 2000)
     camera.position.set(-68, 200, 322.84)
@@ -81,6 +86,19 @@ function mount(container: HTMLElement) {
         camera!.aspect = r.width / r.height
         camera!.updateProjectionMatrix()
         renderer!.setSize(r.width, r.height)
+    })
+    window.addEventListener('click', (event: any) => {
+        if (!renderer) return
+        const rect = renderer.domElement.getBoundingClientRect();
+        mousePointer.x = ( ( event.clientX - rect.left ) / ( rect.right - rect.left ) ) * 2 - 1;
+        mousePointer.y = - ( ( event.clientY - rect.top ) / ( rect.bottom - rect.top) ) * 2 + 1;
+        raycaster.setFromCamera(mousePointer, camera!)
+        loadedModels.forEach((value, key, map) => {
+            const intersect = raycaster.intersectObject(value, true)
+            if (intersect.length > 0) {
+                console.log("intersecção!!")
+            }
+        })
     })
 }
 
