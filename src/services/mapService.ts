@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { FontLoader } from 'three/addons/loaders/FontLoader.js'
+import { Text } from 'troika-three-text'
 
 type Building = {
     name: string
@@ -20,6 +21,7 @@ let raycaster: THREE.Raycaster
 let animationRunning = false
 
 const loadedModels = new Map<string, THREE.Object3D>()
+const loadedLabels = new Map<string, Text>()
 const originalMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>()
 
 async function initIfNeeded(containerSize?: { w: number, h: number }) {
@@ -96,7 +98,10 @@ function mount(container: HTMLElement) {
         loadedModels.forEach((value, key, map) => {
             const intersect = raycaster.intersectObject(value, true)
             if (intersect.length > 0) {
-                console.log("intersecção!!")
+                const text = loadedLabels!.get(key)
+                if (text) {
+                    text.visible = !text.visible
+                }
             }
         })
     })
@@ -205,31 +210,31 @@ async function loadModels(buildings: Building[]) {
 
     const createLabel = (name: string, model: THREE.Object3D, font: any) => {
         try {
-            const box = new THREE.Box3().setFromObject(model)
-            const size = new THREE.Vector3(); const center = new THREE.Vector3()
-            box.getSize(size); box.getCenter(center)
-            let shape = font.generateShapes(name, name.length < 5 ? 3.125 : 2.625)
-            let geometryS = new THREE.ShapeGeometry(shape); geometryS.computeBoundingBox()
-            const holeShapes: any[] = []
-            for (const sh of shape) { if (sh.holes) for (const h of sh.holes) holeShapes.push(h) }
-            shape.push(...holeShapes)
-            const lineText = new THREE.Object3D()
-            for (const sh of shape) {
-                const points = sh.getPoints()
-                const geometry = new THREE.BufferGeometry().setFromPoints(points)
-                const lineMesh = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x000000 }))
-                lineText.add(lineMesh)
-            }
-            const textBox = new THREE.Box3().setFromObject(new THREE.Mesh(geometryS))
-            const textBoxSize = new THREE.Vector3(); const textBoxCenter = new THREE.Vector3()
-            textBox.getSize(textBoxSize); textBox.getCenter(textBoxCenter)
-            const corner = [center.x - size.x / 2, center.y + size.y / 2, center.z - size.z / 2]
-            const labelPos = [(size.x - textBoxSize.y) / 2, 0, (size.z - textBoxSize.x) / 2]
-            const textMesh = new THREE.Mesh(geometryS, new THREE.MeshBasicMaterial({ color: 0xffffff }))
-            textMesh.rotation.set(-Math.PI / 2, 0, -Math.PI / 2)
-            textMesh.position.set(labelPos[0] + corner[0], labelPos[1] + corner[1] + 0.1, labelPos[2] + corner[2])
-            textMesh.add(lineText)
-            scene!.add(textMesh)
+            const text = new Text();
+            text.text = name;
+            text.fontSize = 3.5;
+            text.color = 0xffffff;
+            text.outlineWidth = 0.15;
+            text.outlineColor = 0x000000;
+            text.visible = false
+            text.getBoundingClientRect
+            text.sync(() => {
+                // Labels!!
+                const box = new THREE.Box3().setFromObject(model)
+                const size = new THREE.Vector3()
+                const center = new THREE.Vector3()
+                box.getSize(size)
+                box.getCenter(center)
+                const textBox = text.geometry.boundingBox
+                const textBoxSize = new THREE.Vector3()
+                textBox.getSize(textBoxSize)
+                const corner = [center.x - size.x/2, center.y + size.y/2, center.z - size.z/2]
+                const labelPos = [(size.x + textBoxSize.y) / 2, 0, (size.z - textBoxSize.x) / 2]
+                text.rotation.set(-Math.PI / 2, 0, -Math.PI / 2)
+                text.position.set(labelPos[0] + corner[0], labelPos[1] + corner[1] + 0.1, labelPos[2] + corner[2])
+            });
+            scene!.add(text)
+            loadedLabels.set(name, text)
         } catch (err) { console.error('label fail', err) }
     }
 
