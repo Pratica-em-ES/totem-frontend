@@ -31,6 +31,26 @@ export class CompanyService {
       throw new Error(`Falha ao carregar empresas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
+  
+  async getCompanyImagePath(id: number): Promise<string> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${id}/image`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/plain',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+      }
+      const imagePath: string = await response.text();
+      return imagePath;
+    } catch (error) {
+      console.error(`Erro ao buscar caminho da imagem para empresa ${id}:`, error);
+      throw new Error(`Falha ao carregar caminho da imagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  }
 }
 
 export const companyService = new CompanyService();
