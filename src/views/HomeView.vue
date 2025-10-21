@@ -39,13 +39,12 @@ function onSearch(payload: { query: string; category: string }) {
 }
 
 /* substituir home-map-host por estilos do Visualiser */
-.map-renderer-style {
-  position: fixed;
-  bottom: 5%;
-  right: 2.5%;
-  width: 75%;
-  height: 80%;
-  border-radius: 12px;
-  overflow: hidden;
-}
+  .map-renderer-style {
+    position: fixed;
+    bottom: 5.8%;
+    right: 3.4%;
+    width: 83.5%;
+    height: 79%;
+    /* border: 1px solid red; */
+  }
 </style>
