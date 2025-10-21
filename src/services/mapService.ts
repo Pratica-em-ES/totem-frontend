@@ -92,9 +92,12 @@ function unmount(container: HTMLElement) {
     // manter renderer em memória para preservar estado
 }
 
-async function loadSceneFromUrl(url = 'http://localhost:8080/map') {
+async function loadSceneFromUrl(url?: string) {
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+    const mapUrl = url || `${API_BASE_URL}/map`
+
     try {
-        const res = await fetch(url)
+        const res = await fetch(mapUrl)
         const data = await res.json()
         if (scene) {
             loadGround(data.edges)
