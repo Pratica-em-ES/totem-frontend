@@ -18,7 +18,7 @@ const props = defineProps<Props>()
     </div>
     <div class="body">
       <h3 class="title">{{ name }}</h3>
-      <p class="location">Prédio {{ building }}<template v-if="floor">, {{ floor }} andar</template></p>
+      <p class="location">Prédio {{ building }}</p>
       <p class="desc">{{ description }}</p>
     </div>
     <div class="cta">
@@ -61,7 +61,22 @@ const props = defineProps<Props>()
 .body { display: flex; flex-direction: column; gap: 0.55rem; }
 .title { font-size: 1.32rem; font-weight: 700; color:#111827; line-height: 1.12; }
 .location { font-size: 0.97rem; font-weight: 600; color:#1f2937; }
-.desc { font-size: 0.95rem; line-height: 1.38; font-weight: 500; color:#111827; max-width: 65ch; }
+.desc { 
+  font-size: 0.95rem; 
+  line-height: 1.4; 
+  font-weight: 500; 
+  color: #111827; 
+  max-width: clamp(70ch, 70vw, 90ch);
+  
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  max-height: calc(1.4em * 3);
+}
 
 .cta { align-self: stretch; display: flex; align-items: center; }
 .go { all: unset; cursor:pointer; width: 90px; height: 90px; border-radius: 26px; background:#fff; border:2px solid #c9a352; color:#b3872d; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.75); }

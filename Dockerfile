@@ -5,9 +5,9 @@ FROM node:20-alpine as base
 WORKDIR /app
 COPY package*.json ./
 
-# Stage 2: Dependencies
+# Stage 2: Install all dependencies (including devDependencies for build)
 FROM base as dependencies
-RUN npm ci
+RUN npm ci --include=dev
 
 # Stage 3: Development
 FROM dependencies as development
@@ -20,12 +20,14 @@ FROM dependencies as build
 COPY . .
 RUN npm run build
 
-# Stage 5: Production with nginx
-FROM nginx:alpine as production
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Stage 5: Production with Vite preview
+FROM node:20-alpine as production
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package*.json ./
+RUN npm ci --omit=dev
+EXPOSE 8080
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "8080"]
 
 # Final stage selection based on NODE_ENV
 FROM ${NODE_ENV:-production} as final

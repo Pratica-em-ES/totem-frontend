@@ -1,9 +1,9 @@
 export interface CompanyDTO {
   id: string;
   name: string;
-  cnpj: string;
   category: string;
-  address: string; // if Company.java has an Address entity, you can replace with AddressDTO
+  description: string;
+  building: string;
 }
 
 export function filterCompaniesByCategory(companies: CompanyDTO[], category: string): CompanyDTO[] {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import SideMenu from '@/components/SideMenu.vue'
 import CompanyList from '@/components/CompanyList.vue'
 import SearchBar from '@/components/SearchBar.vue';
