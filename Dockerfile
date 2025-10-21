@@ -25,7 +25,8 @@ FROM node:20-alpine as production
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
-RUN npm ci --omit=dev
+# Install dependencies including vite (needed for preview command)
+RUN npm ci --include=dev
 EXPOSE 8080
 CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "8080"]
 

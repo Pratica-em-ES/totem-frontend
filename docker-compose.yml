@@ -9,8 +9,7 @@ services:
     env_file:
       - .env
     ports:
-      - "5173:5173"  # Development port
-      - "80:80"      # Production port
+      - "8080:8080"
     volumes:
       # Mount source code for development (will be ignored in production)
       - .:/app
