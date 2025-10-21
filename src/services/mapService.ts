@@ -217,7 +217,6 @@ async function loadModels(buildings: Building[]) {
             text.outlineWidth = 0.15;
             text.outlineColor = 0x000000;
             text.visible = false
-            text.getBoundingClientRect
             text.sync(() => {
                 // Labels!!
                 const box = new THREE.Box3().setFromObject(model)
