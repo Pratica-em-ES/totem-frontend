@@ -101,7 +101,7 @@ export class LabelManager {
           const pinRadius = pinSize / 3
 
           // Draw red pin
-          ctx.fillStyle = '#FF0000'
+          ctx.fillStyle = '#b90a04ff'
 
           // Circular top part
           ctx.beginPath()
