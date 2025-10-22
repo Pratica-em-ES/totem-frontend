@@ -8,6 +8,15 @@ import type { MapState, RouteConfig, NodeDTO } from '../types'
  * Manages route visualization on the map
  */
 export class RouteTracer {
+  // Route Style
+  static ROUTE_COLOR = 'rgb(0, 90, 226)'
+  static ROUTE_WIDTH = 2.0
+  static ROUTE_OPACITY = 1
+  static ROUTE_HEIGHT = 0
+  static ROUTE_RENDER_ORDER = 99
+  static ROUTE_MATERIAL_SIDE = THREE.DoubleSide
+
+
   private state: MapState
   private routeLines: THREE.Object3D[] = []
   private config: Required<RouteConfig>
@@ -15,9 +24,9 @@ export class RouteTracer {
   constructor(state: MapState, config: RouteConfig = {}) {
     this.state = state
     this.config = {
-      lineColor: config.lineColor ?? 0x00ff00,
+      lineColor: config.lineColor ?? RouteTracer.ROUTE_COLOR,
       lineWidth: config.lineWidth ?? 5,
-      lineOpacity: config.lineOpacity ?? 0.9,
+      lineOpacity: config.lineOpacity ?? RouteTracer.ROUTE_OPACITY,
       animated: config.animated ?? false
     }
   }
@@ -79,6 +88,13 @@ export class RouteTracer {
       if (line instanceof Line2) {
         line.geometry.dispose()
         line.material.dispose()
+      } else if (line instanceof THREE.Mesh) {
+        line.geometry.dispose()
+        if (Array.isArray(line.material)) {
+          line.material.forEach((mat) => mat.dispose())
+        } else {
+          line.material.dispose()
+        }
       }
     })
 
@@ -110,40 +126,94 @@ export class RouteTracer {
   }
 
   /**
-   * Create a route segment between two nodes
+   * Create a route segment between two nodes as a plane/ribbon with rounded caps
    */
   private createRouteSegment(fromNode: NodeDTO, toNode: NodeDTO): void {
     if (!this.state.scene) return
 
-    // Create line geometry with elevated Y position
-    const yOffset = 2.5 // Elevate the line above the ground
-    const positions = [
-      fromNode.x, yOffset, fromNode.y,
-      toNode.x, yOffset, toNode.y
-    ]
+    const yOffset = RouteTracer.ROUTE_HEIGHT
+    const ribbonWidth = RouteTracer.ROUTE_WIDTH
+    const halfWidth = ribbonWidth / 2
 
-    const lineGeometry = new LineGeometry()
-    lineGeometry.setPositions(positions)
+    // Calculate direction vector
+    const dx = toNode.x - fromNode.x
+    const dz = toNode.y - fromNode.y
+    const length = Math.sqrt(dx * dx + dz * dz)
 
-    const lineMaterial = new LineMaterial({
+    // Normalize direction
+    const dirX = dx / length
+    const dirZ = dz / length
+
+    // Perpendicular vector for width
+    const perpX = -dirZ
+    const perpZ = dirX
+
+    // Create material
+    const material = new THREE.MeshBasicMaterial({
       color: this.config.lineColor,
-      linewidth: this.config.lineWidth,
       opacity: this.config.lineOpacity,
       transparent: true,
+      side: RouteTracer.ROUTE_MATERIAL_SIDE,
       depthTest: true,
-      depthWrite: false,
-      alphaToCoverage: true
+      depthWrite: false
     })
 
-    // Resolution for line rendering
-    lineMaterial.resolution.set(window.innerWidth, window.innerHeight)
+    // 1. Create main ribbon body
+    const v1 = new THREE.Vector3(
+      fromNode.x + perpX * halfWidth,
+      yOffset,
+      fromNode.y + perpZ * halfWidth
+    )
+    const v2 = new THREE.Vector3(
+      fromNode.x - perpX * halfWidth,
+      yOffset,
+      fromNode.y - perpZ * halfWidth
+    )
+    const v3 = new THREE.Vector3(
+      toNode.x - perpX * halfWidth,
+      yOffset,
+      toNode.y - perpZ * halfWidth
+    )
+    const v4 = new THREE.Vector3(
+      toNode.x + perpX * halfWidth,
+      yOffset,
+      toNode.y + perpZ * halfWidth
+    )
 
-    const line = new Line2(lineGeometry, lineMaterial)
-    line.computeLineDistances()
-    line.renderOrder = 999 // Render on top
+    const geometry = new THREE.BufferGeometry()
+    const vertices = new Float32Array([
+      v1.x, v1.y, v1.z,
+      v2.x, v2.y, v2.z,
+      v3.x, v3.y, v3.z,
+      v1.x, v1.y, v1.z,
+      v3.x, v3.y, v3.z,
+      v4.x, v4.y, v4.z
+    ])
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
+    geometry.computeVertexNormals()
 
-    this.state.scene.add(line)
-    this.routeLines.push(line)
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.renderOrder = RouteTracer.ROUTE_RENDER_ORDER
+    this.state.scene.add(mesh)
+    this.routeLines.push(mesh)
+
+    // 2. Add rounded cap at start (circle)
+    const startCapGeometry = new THREE.CircleGeometry(halfWidth, 16)
+    startCapGeometry.rotateX(-Math.PI / 2)
+    const startCap = new THREE.Mesh(startCapGeometry, material.clone())
+    startCap.position.set(fromNode.x, yOffset, fromNode.y)
+    startCap.renderOrder = RouteTracer.ROUTE_RENDER_ORDER
+    this.state.scene.add(startCap)
+    this.routeLines.push(startCap)
+
+    // 3. Add rounded cap at end (circle)
+    const endCapGeometry = new THREE.CircleGeometry(halfWidth, 16)
+    endCapGeometry.rotateX(-Math.PI / 2)
+    const endCap = new THREE.Mesh(endCapGeometry, material.clone())
+    endCap.position.set(toNode.x, yOffset, toNode.y)
+    endCap.renderOrder = RouteTracer.ROUTE_RENDER_ORDER
+    this.state.scene.add(endCap)
+    this.routeLines.push(endCap)
   }
 
   /**

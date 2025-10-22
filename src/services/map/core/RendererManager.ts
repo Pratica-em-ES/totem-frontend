@@ -13,9 +13,17 @@ export class RendererManager {
   private composer: EffectComposer | null = null
   private outlinePass: OutlinePass | null = null
   private animationFrameId: number | null = null
+  private controlsManager: any = null
 
   constructor(state: MapState) {
     this.state = state
+  }
+
+  /**
+   * Set controls manager reference for render loop updates
+   */
+  setControlsManager(controlsManager: any): void {
+    this.controlsManager = controlsManager
   }
 
   /**
@@ -29,20 +37,26 @@ export class RendererManager {
   }
 
   /**
-   * Create the WebGL renderer
+   * Create the WebGL renderer (same as old mapService)
    */
   private createRenderer(container: HTMLElement, config: RendererConfig): void {
-    const { antialias = true, alpha = false, shadowsEnabled = true } = config
+    const { antialias = true, shadowsEnabled = true } = config
 
-    this.state.renderer = new THREE.WebGLRenderer({ antialias, alpha })
+    this.state.renderer = new THREE.WebGLRenderer({
+      antialias,
+      logarithmicDepthBuffer: true
+    })
     this.state.renderer.setSize(container.clientWidth, container.clientHeight)
     this.state.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.state.renderer.toneMappingExposure = 1.0
+    // @ts-ignore - outputColorSpace compatibility (same as old)
+    this.state.renderer.outputColorSpace = THREE.SRGBColorSpace ?? (this.state.renderer as any).outputEncoding
 
     if (shadowsEnabled) {
       this.state.renderer.shadowMap.enabled = true
-      this.state.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     }
+
+    // Set clear color to gray (same as old)
+    this.state.renderer.setClearColor(0x808080, 1)
 
     container.appendChild(this.state.renderer.domElement)
     this.state.container = container
@@ -135,6 +149,11 @@ export class RendererManager {
    * Render a single frame
    */
   private render(): void {
+    // Update controls only when not animating camera
+    if (this.controlsManager && !this.state.isCameraAnimating) {
+      this.controlsManager.update()
+    }
+
     if (this.composer) {
       this.composer.render()
     } else if (this.state.renderer && this.state.scene && this.state.camera) {
@@ -143,16 +162,23 @@ export class RendererManager {
   }
 
   /**
-   * Setup window resize handler
+   * Setup window resize handler with FOV adaptation (same as old mapService)
    */
   private setupResizeHandler(): void {
+    const BASE_FOV = 10
+    const REFERENCE_ASPECT = 16 / 9
+
     const handleResize = () => {
       if (!this.state.container || !this.state.renderer || !this.state.camera) return
 
       const width = this.state.container.clientWidth
       const height = this.state.container.clientHeight
+      const currentAspect = width / height
 
-      this.state.camera.aspect = width / height
+      // Ajustar FOV baseado no aspect ratio para manter visualização consistente (same as old)
+      const fovAdjustment = currentAspect / REFERENCE_ASPECT
+      this.state.camera.fov = BASE_FOV * (1 / Math.sqrt(fovAdjustment))
+      this.state.camera.aspect = currentAspect
       this.state.camera.updateProjectionMatrix()
 
       this.state.renderer.setSize(width, height)

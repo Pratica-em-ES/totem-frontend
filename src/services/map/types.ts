@@ -58,6 +58,9 @@ export interface MapState {
   // Route state
   currentRoute: number[] | null
   routeLines: THREE.Object3D[]
+
+  // Animation state
+  isCameraAnimating: boolean
 }
 
 /**

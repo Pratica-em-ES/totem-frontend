@@ -25,48 +25,51 @@ export class SceneManager {
    */
   private createScene(): void {
     this.state.scene = new THREE.Scene()
-    this.state.scene.background = new THREE.Color(0x87ceeb) // Sky blue
+    this.state.scene.background = new THREE.Color(0x808080) // Gray background (same as old)
   }
 
   /**
    * Create and configure the camera
    */
   private createCamera(): void {
+    // FOV base para aspect ratio de referência (16/9) - same as old
+    const BASE_FOV = 10
+
     this.state.camera = new THREE.PerspectiveCamera(
-      75,
+      BASE_FOV,
       window.innerWidth / window.innerHeight,
-      0.1,
-      1000
+      0.01,
+      2000
     )
     this.state.camera.position.set(-68, 200, 322.84)
+    this.state.camera.up.set(0, 1, 0)
+    this.state.camera.lookAt(0, 0, 0)
   }
 
   /**
-   * Create scene lighting (sun + ambient)
+   * Create scene lighting (sun + ambient) - same as old mapService
    */
   private createLights(): void {
     if (!this.state.scene) return
 
-    // Directional light (sun)
+    // Directional light (sun) - same as old
     const sunLight = new THREE.DirectionalLight(0xffffff, 1)
-    sunLight.position.set(50, 100, 50)
+    sunLight.position.set(30, 20, 10)
     sunLight.castShadow = true
 
-    // Configure shadow properties
-    sunLight.shadow.mapSize.width = 2048
-    sunLight.shadow.mapSize.height = 2048
-    sunLight.shadow.camera.near = 0.5
-    sunLight.shadow.camera.far = 500
-    sunLight.shadow.camera.left = -100
-    sunLight.shadow.camera.right = 100
-    sunLight.shadow.camera.top = 100
-    sunLight.shadow.camera.bottom = -100
+    // Configure shadow properties - same as old
+    sunLight.shadow.camera.top = 200
+    sunLight.shadow.camera.bottom = -200
+    sunLight.shadow.camera.left = -200
+    sunLight.shadow.camera.right = 200
+    sunLight.shadow.camera.near = 1
+    sunLight.shadow.camera.far = 2000
 
     this.state.scene.add(sunLight)
 
-    // Ambient light (soft fill)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
-    this.state.scene.add(ambientLight)
+    // Ambient + Directional lights - same as old
+    this.state.scene.add(new THREE.AmbientLight(0xffffff, 1))
+    this.state.scene.add(new THREE.DirectionalLight(0xffffff, 2))
   }
 
   /**

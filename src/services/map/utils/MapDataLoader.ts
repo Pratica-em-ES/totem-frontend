@@ -1,21 +1,30 @@
 import type { MapDTO } from '@/models/MapDTO'
+import { mapApi } from '@/services/api'
 
 /**
  * Handles loading map data from the backend API
+ * Simplified to use centralized API layer
  */
 export class MapDataLoader {
-  private apiUrl: string
-
-  constructor(apiUrl?: string) {
-    this.apiUrl = apiUrl || this.getDefaultApiUrl()
-  }
-
   /**
    * Load map data from the backend
    */
   async loadMapData(): Promise<MapDTO> {
     try {
-      const response = await fetch(this.apiUrl)
+      const data = await mapApi.getMapData()
+      return this.validateMapData(data)
+    } catch (error) {
+      console.error('[MapDataLoader] Error loading map data:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Load map data from a specific URL (for testing/development)
+   */
+  async loadMapDataFromUrl(url: string): Promise<MapDTO> {
+    try {
+      const response = await fetch(url)
 
       if (!response.ok) {
         throw new Error(`Failed to load map data: ${response.statusText}`)
@@ -24,17 +33,9 @@ export class MapDataLoader {
       const data = await response.json()
       return this.validateMapData(data)
     } catch (error) {
-      console.error('Error loading map data:', error)
+      console.error('[MapDataLoader] Error loading map data from URL:', error)
       throw error
     }
-  }
-
-  /**
-   * Load map data from a specific URL
-   */
-  async loadMapDataFromUrl(url: string): Promise<MapDTO> {
-    const loader = new MapDataLoader(url)
-    return loader.loadMapData()
   }
 
   /**
@@ -58,27 +59,5 @@ export class MapDataLoader {
     }
 
     return data as MapDTO
-  }
-
-  /**
-   * Get the default API URL from environment variables
-   */
-  private getDefaultApiUrl(): string {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
-    return `${backendUrl}/map`
-  }
-
-  /**
-   * Update the API URL
-   */
-  setApiUrl(url: string): void {
-    this.apiUrl = url
-  }
-
-  /**
-   * Get the current API URL
-   */
-  getApiUrl(): string {
-    return this.apiUrl
   }
 }

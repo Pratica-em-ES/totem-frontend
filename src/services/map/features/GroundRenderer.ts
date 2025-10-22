@@ -5,8 +5,30 @@ import type { MapState, EdgeDTO, NodeDTO } from '../types'
  * Manages ground rendering with street and grass textures
  */
 export class GroundRenderer {
+  // World Size
+  static WORLD_SIZE = 90
+
+  // Road/Street Style
+  static ROAD_TEXTURE = 'textures/cobblestone.jpg'
+  static ROAD_TEXTURE_REPEAT_X = 22.5
+  static ROAD_TEXTURE_REPEAT_Y = 22.5
+  static ROAD_ROUGHNESS = 0.6
+  static ROAD_METALNESS = 0.1
+  static ROAD_WIDTH = 2.5
+  static ROAD_COLOR = 'rgba(223, 223, 223, 1)'
+
+  // Grass Style
+  static GRASS_TEXTURE = 'textures/grass.jpg'
+  static GRASS_TEXTURE_REPEAT_X = 30
+  static GRASS_TEXTURE_REPEAT_Y = 30
+  static GRASS_ANISOTROPY = 8
+  static GRASS_ROUGHNESS = 0.8
+  static GRASS_COLOR = 'rgba(114, 196, 82, 1)'
+
+  // Alpha Map Generation
+  static ALPHA_MAP_SIZE = 2048
+
   private state: MapState
-  private worldSize = 90
   private roadPlane: THREE.Mesh | null = null
   private grassPlane: THREE.Mesh | null = null
 
@@ -24,24 +46,25 @@ export class GroundRenderer {
     const roadAlphaMap = this.createRoadAlphaMap(streets, nodesMap)
 
     // Load road texture
-    const roadTexture = await this.loadTexture('textures/cobblestone.jpg')
+    const roadTexture = await this.loadTexture(GroundRenderer.ROAD_TEXTURE)
     roadTexture.wrapS = roadTexture.wrapT = THREE.RepeatWrapping
-    roadTexture.repeat.set(this.worldSize / 4, this.worldSize / 4)
+    roadTexture.repeat.set(GroundRenderer.ROAD_TEXTURE_REPEAT_X, GroundRenderer.ROAD_TEXTURE_REPEAT_Y)
 
-    // Create road material
+    // Create road material (grayscale texture colored by ROAD_COLOR)
     const roadMaterial = new THREE.MeshStandardMaterial({
       map: roadTexture,
       alphaMap: roadAlphaMap,
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
-      roughness: 0.6,
-      metalness: 0.1
+      roughness: GroundRenderer.ROAD_ROUGHNESS,
+      metalness: GroundRenderer.ROAD_METALNESS,
+      color: GroundRenderer.ROAD_COLOR
     })
 
     // Create road plane
     this.roadPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(this.worldSize, this.worldSize),
+      new THREE.PlaneGeometry(GroundRenderer.WORLD_SIZE, GroundRenderer.WORLD_SIZE),
       roadMaterial
     )
     this.roadPlane.position.set(0, 0, 0)
@@ -49,23 +72,23 @@ export class GroundRenderer {
     this.state.scene.add(this.roadPlane)
 
     // Load grass texture
-    const grassTexture = await this.loadTexture('textures/grass.jpg')
+    const grassTexture = await this.loadTexture(GroundRenderer.GRASS_TEXTURE)
     grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping
-    grassTexture.repeat.set(30, 30)
-    grassTexture.anisotropy = 8
+    grassTexture.repeat.set(GroundRenderer.GRASS_TEXTURE_REPEAT_X, GroundRenderer.GRASS_TEXTURE_REPEAT_Y)
+    grassTexture.anisotropy = GroundRenderer.GRASS_ANISOTROPY
 
-    // Create grass material
+    // Create grass material (grayscale texture colored by GRASS_COLOR)
     const grassMaterial = new THREE.MeshStandardMaterial({
       map: grassTexture,
       depthWrite: false,
       side: THREE.DoubleSide,
-      roughness: 0.8,
-      color: 0x4caf50
+      roughness: GroundRenderer.GRASS_ROUGHNESS,
+      color: GroundRenderer.GRASS_COLOR
     })
 
     // Create grass plane
     this.grassPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(this.worldSize, this.worldSize),
+      new THREE.PlaneGeometry(GroundRenderer.WORLD_SIZE, GroundRenderer.WORLD_SIZE),
       grassMaterial
     )
     this.grassPlane.position.set(0, 0, 0)
@@ -81,7 +104,7 @@ export class GroundRenderer {
     streets: EdgeDTO[],
     nodesMap: Map<number, NodeDTO>
   ): THREE.CanvasTexture {
-    const sizePx = 2048
+    const sizePx = GroundRenderer.ALPHA_MAP_SIZE
     const canvas = document.createElement('canvas')
     canvas.width = canvas.height = sizePx
     const ctx = canvas.getContext('2d')
@@ -90,8 +113,8 @@ export class GroundRenderer {
       ctx.clearRect(0, 0, sizePx, sizePx)
 
       const mapToCanvas = (x: number, z: number): [number, number] => [
-        ((x + this.worldSize / 2) / this.worldSize) * sizePx,
-        ((z + this.worldSize / 2) / this.worldSize) * sizePx
+        ((x + GroundRenderer.WORLD_SIZE / 2) / GroundRenderer.WORLD_SIZE) * sizePx,
+        ((z + GroundRenderer.WORLD_SIZE / 2) / GroundRenderer.WORLD_SIZE) * sizePx
       ]
 
       ctx.lineCap = 'round'
@@ -110,8 +133,7 @@ export class GroundRenderer {
         }
 
         // Calculate proportional street width
-        const defaultWidth = 2.5
-        ctx.lineWidth = defaultWidth * (sizePx / this.worldSize)
+        ctx.lineWidth = GroundRenderer.ROAD_WIDTH * (sizePx / GroundRenderer.WORLD_SIZE)
         ctx.beginPath()
 
         const [px1, pz1] = mapToCanvas(nodeA.x, nodeA.y)

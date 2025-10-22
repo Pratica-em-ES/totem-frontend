@@ -1,11 +1,20 @@
 import * as THREE from 'three'
 import type { MapState, BuildingDTO } from '../types'
 import type { RendererManager } from '../core/RendererManager'
+import { featureFlags } from '@/config/featureFlags'
 
 /**
  * Manages building highlighting with outline effects and material changes
  */
 export class BuildingHighlighter {
+  // Legacy Color Change Style (changeBuildingColor method)
+  static HIGHLIGHT_COLOR = 0xff0000                  // Red (hex color)
+  static MATERIAL_METALNESS = 0                      // Metalness (0-1)
+  static MATERIAL_ROUGHNESS = 0.5                    // Roughness (0-1)
+
+  // Note: Outline effect is configured in RendererManager (OutlinePass)
+  // To customize outline: see RendererManager.ts
+
   private state: MapState
   private rendererManager: RendererManager
   private originalMaterials = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>()
@@ -19,6 +28,12 @@ export class BuildingHighlighter {
    * Highlight a building by ID or name
    */
   highlightBuilding(buildingId: number | string): void {
+    // Check if highlighting is enabled
+    if (!featureFlags.enableBuildingHighlight) {
+      console.log('[BuildingHighlighter] Highlighting disabled by feature flag')
+      return
+    }
+
     const id = this.resolveBuildingId(buildingId)
     if (id === null) {
       console.warn('Building not found:', buildingId)
@@ -100,8 +115,8 @@ export class BuildingHighlighter {
         // Apply new colored material
         mesh.material = new THREE.MeshStandardMaterial({
           color,
-          metalness: 0,
-          roughness: 0.5
+          metalness: BuildingHighlighter.MATERIAL_METALNESS,
+          roughness: BuildingHighlighter.MATERIAL_ROUGHNESS
         })
       }
     })
@@ -176,7 +191,7 @@ export class BuildingHighlighter {
    * Legacy method: highlight model by name (red material)
    */
   highlightModelByName(modelName: string): void {
-    this.changeBuildingColor(modelName, 0xff0000)
+    this.changeBuildingColor(modelName, BuildingHighlighter.HIGHLIGHT_COLOR)
   }
 
   /**

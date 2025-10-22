@@ -5,6 +5,30 @@ import type { MapState, NodeDTO } from '../types'
  * Manages text labels for buildings and nodes
  */
 export class LabelManager {
+  // Building Label Style
+  static BUILDING_FONT_SIZE = 100
+  static BUILDING_FONT_FAMILY = 'Arial'
+  static BUILDING_FONT_WEIGHT = 'normal'
+  static BUILDING_PADDING = 20
+  static BUILDING_BG_COLOR = 'rgba(0, 0, 0, 0.7)'
+  static BUILDING_TEXT_COLOR = '#ffffff'
+  static BUILDING_HEIGHT_OFFSET = 2
+  static BUILDING_SPRITE_HEIGHT = 2.5
+  static BUILDING_RENDER_ORDER = 100
+
+  // Node Label Style
+  static NODE_CANVAS_WIDTH = 128
+  static NODE_CANVAS_HEIGHT = 64
+  static NODE_FONT_SIZE = 32
+  static NODE_FONT_FAMILY = 'Arial'
+  static NODE_FONT_WEIGHT = 'bold'
+  static NODE_BG_COLOR = 'rgba(0, 0, 0, 0.6)'
+  static NODE_TEXT_COLOR = '#ffffff'
+  static NODE_HEIGHT = 5
+  static NODE_SCALE_X = 3
+  static NODE_SCALE_Y = 1.5
+  static NODE_RENDER_ORDER = 1001
+
   private state: MapState
   private buildingLabels: THREE.Sprite[] = []
   private nodeLabels: THREE.Sprite[] = []
@@ -37,15 +61,15 @@ export class LabelManager {
       box.getCenter(center)
 
       // Text configuration
-      const fontSize = 144
-      const padding = 40
+      const fontSize = LabelManager.BUILDING_FONT_SIZE
+      const padding = LabelManager.BUILDING_PADDING
 
       // Create temporary canvas to measure text
       const tempCanvas = document.createElement('canvas')
       const tempCtx = tempCanvas.getContext('2d')
       if (!tempCtx) return
 
-      tempCtx.font = `bold ${fontSize}px Arial`
+      tempCtx.font = `${LabelManager.BUILDING_FONT_WEIGHT} ${fontSize}px ${LabelManager.BUILDING_FONT_FAMILY}`
       const textMetrics = tempCtx.measureText(name)
       const textWidth = textMetrics.width
       const textHeight = fontSize
@@ -58,12 +82,12 @@ export class LabelManager {
 
       if (ctx) {
         // Semi-transparent dark background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
+        ctx.fillStyle = LabelManager.BUILDING_BG_COLOR
         ctx.fillRect(0, 0, canvas.width, canvas.height)
 
         // White text with building name
-        ctx.fillStyle = '#ffffff'
-        ctx.font = `bold ${fontSize}px Arial`
+        ctx.fillStyle = LabelManager.BUILDING_TEXT_COLOR
+        ctx.font = `${LabelManager.BUILDING_FONT_WEIGHT} ${fontSize}px ${LabelManager.BUILDING_FONT_FAMILY}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.fillText(name, canvas.width / 2, canvas.height / 2)
@@ -80,14 +104,14 @@ export class LabelManager {
 
       // Create sprite
       const sprite = new THREE.Sprite(material)
-      sprite.position.set(center.x, center.y + size.y / 2 + 2, center.z)
+      sprite.position.set(center.x, center.y + size.y / 2 + LabelManager.BUILDING_HEIGHT_OFFSET, center.z)
 
       // Scale proportional to canvas size
       const aspectRatio = canvas.width / canvas.height
-      const spriteHeight = 4
+      const spriteHeight = LabelManager.BUILDING_SPRITE_HEIGHT
       const spriteWidth = spriteHeight * aspectRatio
       sprite.scale.set(spriteWidth, spriteHeight, 1)
-      sprite.renderOrder = 100
+      sprite.renderOrder = LabelManager.BUILDING_RENDER_ORDER
 
       this.state.scene.add(sprite)
       this.buildingLabels.push(sprite)
@@ -117,16 +141,16 @@ export class LabelManager {
     if (!this.state.scene) return
 
     const canvas = document.createElement('canvas')
-    canvas.width = 128
-    canvas.height = 64
+    canvas.width = LabelManager.NODE_CANVAS_WIDTH
+    canvas.height = LabelManager.NODE_CANVAS_HEIGHT
     const ctx = canvas.getContext('2d')
 
     if (ctx) {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
+      ctx.fillStyle = LabelManager.NODE_BG_COLOR
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 32px Arial'
+      ctx.fillStyle = LabelManager.NODE_TEXT_COLOR
+      ctx.font = `${LabelManager.NODE_FONT_WEIGHT} ${LabelManager.NODE_FONT_SIZE}px ${LabelManager.NODE_FONT_FAMILY}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(`${node.id}`, canvas.width / 2, canvas.height / 2)
@@ -136,14 +160,14 @@ export class LabelManager {
     const material = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
-      depthTest: false, // Render on top
+      depthTest: false,
       depthWrite: false
     })
 
     const sprite = new THREE.Sprite(material)
-    sprite.position.set(node.x, 5, node.y)
-    sprite.scale.set(3, 1.5, 1)
-    sprite.renderOrder = 1001
+    sprite.position.set(node.x, LabelManager.NODE_HEIGHT, node.y)
+    sprite.scale.set(LabelManager.NODE_SCALE_X, LabelManager.NODE_SCALE_Y, 1)
+    sprite.renderOrder = LabelManager.NODE_RENDER_ORDER
 
     this.state.scene.add(sprite)
     this.nodeLabels.push(sprite)

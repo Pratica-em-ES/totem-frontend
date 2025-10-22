@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import type { IMapAPI, MapState, BuildingDTO, NodeDTO } from './types'
 import { SceneManager } from './core/SceneManager'
 import { RendererManager } from './core/RendererManager'
@@ -7,8 +8,10 @@ import { BuildingHighlighter } from './features/BuildingHighlighter'
 import { RouteTracer } from './features/RouteTracer'
 import { LabelManager } from './features/LabelManager'
 import { GroundRenderer } from './features/GroundRenderer'
+import { GraphRenderer } from './features/GraphRenderer'
 import { MapDataLoader } from './utils/MapDataLoader'
 import { RaycastHandler } from './utils/RaycastHandler'
+import { featureFlags } from '@/config/featureFlags'
 
 /**
  * Main Map API - Clean interface for all map operations
@@ -23,6 +26,7 @@ export class MapAPI implements IMapAPI {
   private routeTracer: RouteTracer
   private labelManager: LabelManager
   private groundRenderer: GroundRenderer
+  private graphRenderer: GraphRenderer
   private mapDataLoader: MapDataLoader
   private raycastHandler: RaycastHandler
   private initialized = false
@@ -43,7 +47,8 @@ export class MapAPI implements IMapAPI {
       highlightedBuildingId: null,
       highlightedNodeId: null,
       currentRoute: null,
-      routeLines: []
+      routeLines: [],
+      isCameraAnimating: false
     }
 
     // Initialize managers
@@ -55,6 +60,7 @@ export class MapAPI implements IMapAPI {
     this.routeTracer = new RouteTracer(this.state)
     this.labelManager = new LabelManager(this.state)
     this.groundRenderer = new GroundRenderer(this.state)
+    this.graphRenderer = new GraphRenderer(this.state)
     this.mapDataLoader = new MapDataLoader()
     this.raycastHandler = new RaycastHandler(this.state)
   }
@@ -88,6 +94,9 @@ export class MapAPI implements IMapAPI {
       maxPolarAngle: Math.PI / 2 - 0.1
     })
 
+    // Connect controls manager to renderer for updates in render loop
+    this.rendererManager.setControlsManager(this.controlsManager)
+
     // Setup click handler
     const canvas = this.rendererManager.getDomElement()
     if (canvas) {
@@ -117,6 +126,7 @@ export class MapAPI implements IMapAPI {
     this.routeTracer.dispose()
     this.labelManager.dispose()
     this.groundRenderer.dispose()
+    this.graphRenderer.dispose()
     this.raycastHandler.dispose()
 
     this.initialized = false
@@ -143,6 +153,9 @@ export class MapAPI implements IMapAPI {
 
       // Load buildings
       await this.loadBuildings(mapData.buildings, nodesMap)
+
+      // Apply feature flags
+      this.applyFeatureFlags(nodesMap)
     } catch (error) {
       console.error('Failed to load map data:', error)
       throw error
@@ -162,6 +175,43 @@ export class MapAPI implements IMapAPI {
       this.state.buildingIdToNodeIdMap.set(building.id, building.nodeId)
       this.state.buildingNameToIdMap.set(building.name, building.id)
     })
+  }
+
+  /**
+   * Apply feature flags after map data is loaded
+   */
+  private applyFeatureFlags(nodesMap: Map<number, NodeDTO>): void {
+    if (!this.state.mapData) return
+
+    console.log('[MapAPI] Applying feature flags:', {
+      showBuildingLabels: featureFlags.showBuildingLabels,
+      showNodeLabels: featureFlags.showNodeLabels,
+      showGraphNodes: featureFlags.showGraphNodes,
+      showGraphEdges: featureFlags.showGraphEdges
+    })
+
+    // Building labels
+    if (!featureFlags.showBuildingLabels) {
+      this.labelManager.setBuildingLabelsVisible(false)
+    }
+
+    // Node labels (dev feature)
+    if (featureFlags.showNodeLabels) {
+      console.log('[MapAPI] Creating node labels...')
+      this.labelManager.createNodeLabels(nodesMap)
+    }
+
+    // Graph nodes (dev feature)
+    if (featureFlags.showGraphNodes) {
+      console.log('[MapAPI] Rendering graph nodes...')
+      this.graphRenderer.renderNodes(this.state.mapData.nodes)
+    }
+
+    // Graph edges (dev feature)
+    if (featureFlags.showGraphEdges) {
+      console.log('[MapAPI] Rendering graph edges...')
+      this.graphRenderer.renderEdges(this.state.mapData.edges, nodesMap)
+    }
   }
 
   /**
@@ -207,9 +257,7 @@ export class MapAPI implements IMapAPI {
       }
     }
   }
-
-  // ==================== Public API Methods ====================
-
+  
   /**
    * Get the currently highlighted building
    */
@@ -316,6 +364,101 @@ export class MapAPI implements IMapAPI {
   }
 
   /**
+   * Animate camera to top-down view with smooth zoom out and rotation
+   * Temporarily disables OrbitControls during animation
+   */
+  animateToTopDownView(duration: number = 1500): void {
+    // Check if camera animation is enabled
+    if (!featureFlags.enableCameraAnimation) {
+      console.log('[MapAPI] Camera animation disabled by feature flag')
+      return
+    }
+
+    if (!this.state.camera) {
+      console.warn('[MapAPI] Camera not initialized')
+      return
+    }
+
+    const camera = this.state.camera
+    const controls = this.controlsManager.getControls()
+
+    console.log('[MapAPI] Starting camera animation...')
+    console.log('[MapAPI] Initial position:', camera.position)
+    console.log('[MapAPI] Controls enabled:', controls?.enabled)
+
+    // Set animation flag to prevent controls from updating in render loop
+    this.state.isCameraAnimating = true
+
+    // Completely disable controls during animation
+    const wasEnabled = controls ? controls.enabled : false
+    if (controls) {
+      controls.enabled = false
+      console.log('[MapAPI] Controls disabled for animation')
+    }
+
+    const startPosition = camera.position.clone()
+    const targetPosition = new THREE.Vector3(0, 600, 0) // Maximum zoom out distance
+    const centerTarget = new THREE.Vector3(0, 0, 0)
+
+    // Extract only the "up" vectors to interpolate the roll
+    const startUp = camera.up.clone().normalize()
+    const targetUp = new THREE.Vector3(0, 1, 0)
+
+    // We'll interpolate up vectors and then use lookAt
+    // But we need to make lookAt respect our interpolated up vector
+    // Solution: Build camera matrix manually from forward, up, right vectors
+
+    const startTime = Date.now()
+
+    // Easing function for smooth animation (ease-in-out)
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+    }
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime
+      const rawProgress = Math.min(elapsed / duration, 1)
+      const progress = easeInOutCubic(rawProgress)
+
+      // Interpolate position
+      camera.position.lerpVectors(startPosition, targetPosition, progress)
+
+      // Interpolate up vector (controls the roll/straightening)
+      const interpolatedUp = new THREE.Vector3().lerpVectors(startUp, targetUp, progress).normalize()
+
+      // Set the interpolated up vector
+      camera.up.copy(interpolatedUp)
+
+      // Use lookAt to orient camera toward center while respecting the interpolated up vector
+      camera.lookAt(centerTarget)
+
+      // Update projection matrix to ensure changes are applied
+      camera.updateProjectionMatrix()
+
+      if (rawProgress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        // Animation complete - update controls target to match new position
+        if (controls) {
+          controls.target.copy(centerTarget)
+          controls.enabled = wasEnabled
+          controls.update()
+          console.log('[MapAPI] Controls re-enabled')
+        }
+
+        // Re-enable controls updates in render loop
+        this.state.isCameraAnimating = false
+
+        console.log('[MapAPI] Camera animation completed')
+        console.log('[MapAPI] Final position:', camera.position)
+        console.log('[MapAPI] Final target:', controls?.target)
+      }
+    }
+
+    animate()
+  }
+
+  /**
    * Check if map is initialized
    */
   isInitialized(): boolean {
@@ -327,5 +470,83 @@ export class MapAPI implements IMapAPI {
    */
   async reload(url?: string): Promise<void> {
     await this.loadMapData(url)
+  }
+
+  // ==================== Feature Flag Methods ====================
+
+  /**
+   * Toggle building labels visibility
+   */
+  setBuildingLabelsVisible(visible: boolean): void {
+    this.labelManager.setBuildingLabelsVisible(visible)
+  }
+
+  /**
+   * Toggle node labels visibility (dev feature)
+   */
+  setNodeLabelsVisible(visible: boolean): void {
+    if (!this.state.mapData) return
+
+    if (visible) {
+      const nodesMap = new Map<number, NodeDTO>()
+      this.state.mapData.nodes.forEach((node) => nodesMap.set(node.id, node))
+      this.labelManager.createNodeLabels(nodesMap)
+    } else {
+      this.labelManager.clearNodeLabels()
+    }
+  }
+
+  /**
+   * Toggle graph nodes visibility (dev feature)
+   */
+  setGraphNodesVisible(visible: boolean): void {
+    if (!this.state.mapData) return
+
+    if (visible) {
+      this.graphRenderer.renderNodes(this.state.mapData.nodes)
+    } else {
+      this.graphRenderer.clearNodes()
+    }
+  }
+
+  /**
+   * Toggle graph edges visibility (dev feature)
+   */
+  setGraphEdgesVisible(visible: boolean): void {
+    if (!this.state.mapData) return
+
+    if (visible) {
+      const nodesMap = new Map<number, NodeDTO>()
+      this.state.mapData.nodes.forEach((node) => nodesMap.set(node.id, node))
+      this.graphRenderer.renderEdges(this.state.mapData.edges, nodesMap)
+    } else {
+      this.graphRenderer.clearEdges()
+    }
+  }
+
+  /**
+   * Refresh and reapply all feature flags
+   * Call this after changing feature flags to see changes without page reload
+   */
+  refreshFeatureFlags(): void {
+    if (!this.state.mapData) {
+      console.warn('[MapAPI] Cannot refresh feature flags: map data not loaded')
+      return
+    }
+
+    console.log('[MapAPI] Refreshing feature flags...')
+
+    const nodesMap = new Map<number, NodeDTO>()
+    this.state.mapData.nodes.forEach((node) => nodesMap.set(node.id, node))
+
+    // Clear everything first
+    this.labelManager.clearNodeLabels()
+    this.graphRenderer.clearNodes()
+    this.graphRenderer.clearEdges()
+
+    // Reapply based on current flags
+    this.applyFeatureFlags(nodesMap)
+
+    console.log('[MapAPI] Feature flags refreshed!')
   }
 }
