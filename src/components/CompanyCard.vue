@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useSelectedBuilding } from '../composables/useSelectedBuilding'
+import mapService from '@/services/mapService'
+
 interface Props {
   name: string
   building: string
@@ -8,6 +11,15 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { setSelectedBuilding } = useSelectedBuilding()
+
+const handleClick = () => {
+  // Converter nome do building para ID
+  const buildingId = mapService.getBuildingIdByName(props.building)
+  if (buildingId !== undefined) {
+    setSelectedBuilding(buildingId)
+  }
+}
 </script>
 
 <template>
@@ -22,7 +34,7 @@ const props = defineProps<Props>()
       <p class="desc">{{ description }}</p>
     </div>
     <div class="cta">
-      <button type="button" class="go" aria-label="Ver detalhes de {{ name }}">
+      <button type="button" class="go" aria-label="Ver detalhes de {{ name }}" @click="handleClick">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 6l6 6-6 6" />
         </svg>
