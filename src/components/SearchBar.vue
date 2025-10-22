@@ -27,20 +27,26 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
+import { getCategories } from "@/services/categoryService.js"; 
 
-const props = defineProps({
-  categoriesProp: { type: Array, default: () => ["Todas", "Instituição", "Serviço", "Outro"] }
-});
 const emit = defineEmits(["search"]);
 
-const categories = ref(props.categoriesProp);
+const categories = ref([]);
 const selectedCategory = ref("Todas");
 const searchQuery = ref("");
 
 onMounted(() => {
-  // ensure default
-  if (!selectedCategory.value) selectedCategory.value = "Todas";
+  fetchCategories();
 });
+async function fetchCategories() {
+  try {
+    const data = await getCategories();
+    const categoryNames = data.map(category => category.name);
+    categories.value = ["Todas", ...categoryNames];
+  } catch (error) {
+    console.error("Falha ao carregar categorias no componente:", error);
+  }
+}
 
 function onSearch() {
   emit('search', { query: searchQuery.value, category: selectedCategory.value });
