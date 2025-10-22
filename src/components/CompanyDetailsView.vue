@@ -57,7 +57,7 @@ const goBack = () => {
 }
 
 const goToMap = () => {
-  router.push('/map')
+  router.push('/exemplo')
 }
 </script>
 
@@ -84,13 +84,6 @@ const goToMap = () => {
                     <path d="M19 12H5M12 19l-7-7 7-7" />
                   </svg>
                 </button>
-                
-                <button @click="goToMap" class="route-button-absolute" aria-label="Ver rotas no mapa">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                  </svg>
-                </button>
               </div>
               <div class="title-row">
                 <h1 class="company-name">{{ company.name }}</h1>
@@ -107,6 +100,15 @@ const goToMap = () => {
 
                 <div class="info-item" v-if="company.category">
                   <strong>Categoria:</strong> {{ company.category }}
+                </div>
+
+                <div class="route-button-container">
+                  <button @click="goToMap" class="route-button" aria-label="Ver rotas no mapa">
+                    <span class="route-text">Rotas</span>
+                    <svg viewBox="0 0 32 32" fill="#d4af37" stroke="none">
+                      <path d="M18 26V12c0-3-2-5-5-5H6l4-4-1.5-1.5L2 8l6.5 6.5L10 13l-4-4h7c1.5 0 3 1.5 3 3v14h2z"/>
+                    </svg>
+                  </button>
                 </div>
 
                 <div class="info-item" v-if="company.services?.length">
@@ -263,8 +265,7 @@ const goToMap = () => {
   z-index: 10;
 }
 
-.back-button-absolute,
-.route-button-absolute {
+.back-button-absolute {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -278,28 +279,55 @@ const goToMap = () => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.back-button-absolute:hover,
-.route-button-absolute:hover {
+.back-button-absolute:hover {
   background-color: #f5f5f5;
   color: black;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.route-button-absolute {
-  background: #d4af37;
-  color: white;
-}
-
-.route-button-absolute:hover {
-  background-color: #b8941f;
-  color: white;
-}
-
-.back-button-absolute svg,
-.route-button-absolute svg {
+.back-button-absolute svg {
   width: 24px;
   height: 24px;
+}
+
+.route-button-container {
+  margin-top: 1rem;
+}
+
+.route-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 12px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 65px;
+  height: 85px;
+  gap: 0.2rem;
+}
+
+.route-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.route-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #d4af37;
+  margin: 0;
+}
+
+.route-button svg {
+  width: 36px;
+  height: 36px;
+  stroke: #d4af37;
 }
 
 .company-logo {
