@@ -9,6 +9,7 @@ import { RouteTracer } from './features/RouteTracer'
 import { LabelManager } from './features/LabelManager'
 import { GroundRenderer } from './features/GroundRenderer'
 import { GraphRenderer } from './features/GraphRenderer'
+import { CurrentLocationMarker } from './features/CurrentLocationMarker'
 import { MapDataLoader } from './utils/MapDataLoader'
 import { RaycastHandler } from './utils/RaycastHandler'
 import { featureFlags } from '@/config/featureFlags'
@@ -27,9 +28,11 @@ export class MapAPI implements IMapAPI {
   private labelManager: LabelManager
   private groundRenderer: GroundRenderer
   private graphRenderer: GraphRenderer
+  private currentLocationMarker: CurrentLocationMarker
   private mapDataLoader: MapDataLoader
   private raycastHandler: RaycastHandler
   private initialized = false
+  private currentLocationNodeId: number | null = null
 
   constructor() {
     // Initialize state
@@ -61,6 +64,7 @@ export class MapAPI implements IMapAPI {
     this.labelManager = new LabelManager(this.state)
     this.groundRenderer = new GroundRenderer(this.state)
     this.graphRenderer = new GraphRenderer(this.state)
+    this.currentLocationMarker = new CurrentLocationMarker(this.state)
     this.mapDataLoader = new MapDataLoader()
     this.raycastHandler = new RaycastHandler(this.state)
   }
@@ -127,6 +131,7 @@ export class MapAPI implements IMapAPI {
     this.labelManager.dispose()
     this.groundRenderer.dispose()
     this.graphRenderer.dispose()
+    this.currentLocationMarker.dispose()
     this.raycastHandler.dispose()
 
     this.initialized = false
@@ -250,8 +255,9 @@ export class MapAPI implements IMapAPI {
           this.state.scene.add(model)
         }
 
-        // Create label
-        this.labelManager.createBuildingLabel(building.name, model)
+        // Create label (with pin if this is current location)
+        const isCurrentLocation = this.currentLocationNodeId === building.nodeId
+        this.labelManager.createBuildingLabel(building.name, model, ['tecnopuc'], isCurrentLocation)
       } catch (error) {
         console.error(`Failed to load building: ${building.name}`, error)
       }
@@ -548,5 +554,35 @@ export class MapAPI implements IMapAPI {
     this.applyFeatureFlags(nodesMap)
 
     console.log('[MapAPI] Feature flags refreshed!')
+  }
+
+  // ==================== Current Location Marker Methods ====================
+
+  /**
+   * Show the current location marker at a specific node
+   * This will mark the building at this node with a red pin in its label
+   */
+  showCurrentLocationMarker(nodeId: number): void {
+    this.currentLocationNodeId = nodeId
+
+    // If map is already loaded, we need to reload buildings to show the pin
+    // Otherwise, the pin will be shown when buildings are loaded
+    if (this.state.mapData && this.initialized) {
+      console.log('[MapAPI] Current location set to node', nodeId, '- reload map to see pin in label')
+    }
+  }
+
+  /**
+   * Hide the current location marker
+   */
+  hideCurrentLocationMarker(): void {
+    this.currentLocationMarker.clearMarker()
+  }
+
+  /**
+   * Set current location marker visibility
+   */
+  setCurrentLocationMarkerVisible(visible: boolean): void {
+    this.currentLocationMarker.setVisible(visible)
   }
 }

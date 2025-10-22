@@ -47,7 +47,8 @@ export class LabelManager {
   createBuildingLabel(
     name: string,
     model: THREE.Object3D,
-    excludeNames: string[] = ['tecnopuc']
+    excludeNames: string[] = ['tecnopuc'],
+    isCurrentLocation: boolean = false
   ): void {
     if (!this.state.scene) return
 
@@ -67,6 +68,8 @@ export class LabelManager {
       // Text configuration
       const fontSize = LabelManager.BUILDING_FONT_SIZE
       const padding = LabelManager.BUILDING_PADDING
+      const pinSize = isCurrentLocation ? 120 : 0 // Pin icon size (increased for visibility)
+      const pinPadding = isCurrentLocation ? 25 : 0 // Space between pin and text
 
       // Create temporary canvas to measure text
       const tempCanvas = document.createElement('canvas')
@@ -78,16 +81,50 @@ export class LabelManager {
       const textWidth = textMetrics.width
       const textHeight = fontSize
 
-      // Create canvas with size adjusted to text
+      // Create canvas with size adjusted to text + pin if needed
       const canvas = document.createElement('canvas')
-      canvas.width = textWidth + padding * 2
-      canvas.height = textHeight + padding * 2
+      canvas.width = textWidth + padding * 2 + pinSize + pinPadding
+      canvas.height = Math.max(textHeight + padding * 2, pinSize + padding * 2)
       const ctx = canvas.getContext('2d')
 
       if (ctx) {
         // Semi-transparent dark background
         ctx.fillStyle = LabelManager.BUILDING_BG_COLOR
         ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+        let textStartX = canvas.width / 2
+
+        // Draw pin icon if this is current location
+        if (isCurrentLocation) {
+          const pinCenterX = padding + pinSize / 2
+          const pinCenterY = canvas.height / 2
+          const pinRadius = pinSize / 3
+
+          // Draw red pin
+          ctx.fillStyle = '#FF0000'
+
+          // Circular top part
+          ctx.beginPath()
+          ctx.arc(pinCenterX, pinCenterY - pinRadius * 0.3, pinRadius, 0, Math.PI * 2)
+          ctx.fill()
+
+          // Pointed bottom part (triangle)
+          ctx.beginPath()
+          ctx.moveTo(pinCenterX - pinRadius * 0.5, pinCenterY + pinRadius * 0.5)
+          ctx.lineTo(pinCenterX, pinCenterY + pinRadius * 1.5)
+          ctx.lineTo(pinCenterX + pinRadius * 0.5, pinCenterY + pinRadius * 0.5)
+          ctx.closePath()
+          ctx.fill()
+
+          // White circle in center
+          ctx.fillStyle = '#FFFFFF'
+          ctx.beginPath()
+          ctx.arc(pinCenterX, pinCenterY - pinRadius * 0.3, pinRadius * 0.35, 0, Math.PI * 2)
+          ctx.fill()
+
+          // Adjust text position to be after the pin
+          textStartX = padding + pinSize + pinPadding + textWidth / 2
+        }
 
         // Configure font
         ctx.font = `${LabelManager.BUILDING_FONT_WEIGHT} ${fontSize}px ${LabelManager.BUILDING_FONT_FAMILY}`
@@ -97,11 +134,11 @@ export class LabelManager {
         // Draw text outline
         ctx.strokeStyle = LabelManager.BUILDING_OUTLINE_COLOR
         ctx.lineWidth = LabelManager.BUILDING_OUTLINE_WIDTH
-        ctx.strokeText(name, canvas.width / 2, canvas.height / 2)
+        ctx.strokeText(name, textStartX, canvas.height / 2)
 
         // Draw text fill
         ctx.fillStyle = LabelManager.BUILDING_TEXT_COLOR
-        ctx.fillText(name, canvas.width / 2, canvas.height / 2)
+        ctx.fillText(name, textStartX, canvas.height / 2)
       }
 
       // Create texture and material
