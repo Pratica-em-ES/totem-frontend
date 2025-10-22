@@ -100,7 +100,30 @@ export class LabelManager {
           const pinCenterY = canvas.height / 2
           const pinRadius = pinSize / 3
 
-          // Draw red pin
+          // Draw white outline as a single continuous path
+          ctx.strokeStyle = '#FFFFFF'
+          ctx.lineWidth = 12
+          ctx.lineJoin = 'round'
+          ctx.lineCap = 'round'
+
+          // Create outline path (circle + triangle as one shape)
+          ctx.beginPath()
+          // Start from bottom left of triangle
+          ctx.moveTo(pinCenterX - pinRadius * 0.5, pinCenterY + pinRadius * 0.5)
+          ctx.lineTo(pinCenterX, pinCenterY + pinRadius * 1.5)
+          ctx.lineTo(pinCenterX + pinRadius * 0.5, pinCenterY + pinRadius * 0.5)
+          // Arc around the top circle (continuing the path)
+          ctx.arc(
+            pinCenterX,
+            pinCenterY - pinRadius * 0.3,
+            pinRadius,
+            Math.PI * 0.3,
+            Math.PI * 2.7
+          )
+          ctx.closePath()
+          ctx.stroke()
+
+          // Fill red pin
           ctx.fillStyle = '#b90a04ff'
 
           // Circular top part
@@ -156,7 +179,10 @@ export class LabelManager {
 
       // Scale proportional to canvas size
       const aspectRatio = canvas.width / canvas.height
-      const spriteHeight = LabelManager.BUILDING_SPRITE_HEIGHT
+      // Increase sprite height for current location to match other labels
+      const spriteHeight = isCurrentLocation
+        ? LabelManager.BUILDING_SPRITE_HEIGHT * 1.3
+        : LabelManager.BUILDING_SPRITE_HEIGHT
       const spriteWidth = spriteHeight * aspectRatio
       sprite.scale.set(spriteWidth, spriteHeight, 1)
       sprite.renderOrder = LabelManager.BUILDING_RENDER_ORDER
