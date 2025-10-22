@@ -57,7 +57,14 @@ const goBack = () => {
 }
 
 const goToMap = () => {
-  router.push('/exemplo')
+  if (company.value) {
+    router.push({
+      path: '/rotas',
+      query: { destinoId: company.value.id, destinoNome: company.value.name }
+    })
+  } else {
+    router.push('/rotas')
+  }
 }
 </script>
 
