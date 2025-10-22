@@ -3,17 +3,20 @@ import { RouterView } from 'vue-router'
 import { onMounted } from 'vue'
 import { useCompaniesCache } from '@/composables/useCompaniesCache'
 import { useModelsCache } from '@/composables/useModelsCache'
+import { useImagesCache } from '@/composables/useImagesCache'
 
 const { fetchCompanies } = useCompaniesCache()
 const { fetchModels } = useModelsCache()
+const { fetchImages } = useImagesCache()
 
-// Carregar empresas e modelos ao iniciar a aplicação
+// Carregar empresas, modelos e imagens ao iniciar a aplicação
 onMounted(async () => {
   try {
-    // Carregar ambos em paralelo para otimizar o tempo de inicialização
+    // Carregar todos em paralelo para otimizar o tempo de inicialização
     await Promise.all([
       fetchCompanies(),
-      fetchModels()
+      fetchModels(),
+      fetchImages()
     ])
   } catch (err) {
     console.error('Erro ao carregar dados na inicialização:', err)

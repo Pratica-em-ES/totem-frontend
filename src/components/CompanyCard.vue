@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useImagesCache } from '@/composables/useImagesCache'
 
 interface Props {
   name: string
@@ -12,6 +13,16 @@ interface Props {
 const props = defineProps<Props>()
 
 const imageError = ref(false)
+const { getImage } = useImagesCache()
+
+// Get cached image or fallback to original path
+const imageUrl = computed(() => {
+  if (!props.imagePath) return null
+
+  const cached = getImage(props.imagePath)
+  // Use cached image if available, otherwise fallback to original path
+  return cached || props.imagePath
+})
 
 // Building click disabled - route search functionality takes precedence
 const handleClick = () => {
@@ -27,7 +38,7 @@ const handleImageError = () => {
 <template>
   <article class="company-card" :aria-label="`Empresa ${props.name}`">
     <div class="media" aria-hidden="true">
-      <img v-if="imagePath && !imageError" :src="imagePath" :alt="`Logo ${name}`" class="company-logo" @error="handleImageError" />
+      <img v-if="imageUrl && !imageError" :src="imageUrl" :alt="`Logo ${name}`" class="company-logo" @error="handleImageError" />
       <div v-else class="placeholder-img">IMG</div>
     </div>
     <div class="body">
