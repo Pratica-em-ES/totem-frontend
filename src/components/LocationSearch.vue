@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useCompaniesCache } from '@/composables/useCompaniesCache'
+import { useCurrentLocation } from '@/composables/useCurrentLocation'
 
-// Fixed start location (easy to change)
-const FIXED_START_LOCATION = {
-  name: 'Totem Principal do TecnoPuc',
-  nodeId: 25
-}
+// Get current location from composable
+const { currentLocation } = useCurrentLocation()
 
 interface SearchableItem {
   id: string
@@ -192,7 +190,7 @@ const calculateRoute = async () => {
   isLoadingRoute.value = true
 
   try {
-    const startNodeId = FIXED_START_LOCATION.nodeId
+    const startNodeId = currentLocation.nodeId
     const endNodeId = selectedItem.value.nodeId
 
     console.log('[LocationSearch] Calculating route from node:', startNodeId, '->', endNodeId)
@@ -264,7 +262,7 @@ const calculateRoute = async () => {
       </svg>
       <input
         type="text"
-        :value="FIXED_START_LOCATION.name"
+        :value="currentLocation.name"
         disabled
         class="input-fixed"
       />

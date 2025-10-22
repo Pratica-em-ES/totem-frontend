@@ -1,15 +1,7 @@
 import { ref, computed } from 'vue'
 import { useCompaniesCache } from './useCompaniesCache'
+import { useCurrentLocation } from './useCurrentLocation'
 import { mapApi, routeApi } from '@/services/api'
-
-// Fixed start location (Main Totem)
-const FIXED_START_LOCATION = {
-  id: 'totem-principal',
-  name: 'Totem Principal do TecnoPuc',
-  type: 'totem' as const,
-  nodeId: 1,
-  buildingId: null
-}
 
 export interface SearchResult {
   id: string
@@ -26,6 +18,7 @@ const isDataLoaded = ref(false)
 
 export function useRouteSearch() {
   const { companies, fetchCompanies } = useCompaniesCache()
+  const { currentLocation } = useCurrentLocation()
 
   // Load and build search index
   const loadSearchData = async () => {
@@ -102,7 +95,7 @@ export function useRouteSearch() {
   }
 
   return {
-    FIXED_START_LOCATION,
+    currentLocation,
     loadSearchData,
     searchDestinations,
     fetchRoute,
