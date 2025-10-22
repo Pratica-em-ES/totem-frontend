@@ -25,7 +25,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, watch, onMounted } from "vue";
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
 
 const props = defineProps({
@@ -40,6 +40,16 @@ const searchQuery = ref("");
 onMounted(() => {
   // ensure default
   if (!selectedCategory.value) selectedCategory.value = "Todas";
+});
+
+// Emitir busca em tempo real quando o usuário digita
+watch(searchQuery, (newQuery) => {
+  emit('search', { query: newQuery, category: selectedCategory.value });
+});
+
+// Emitir busca quando a categoria muda
+watch(selectedCategory, (newCategory) => {
+  emit('search', { query: searchQuery.value, category: newCategory });
 });
 
 function onSearch() {
@@ -96,19 +106,19 @@ input::placeholder {
   color: #9ca3af;
 }
 
-  .search-btn {
-    background: #D2AB66;
-    border: none;
-    color: white;
-    padding: 10px 12px;
-    border-radius: 0 8px 8px 0;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
+.search-btn {
+  background: #D2AB66;
+  border: none;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .search-btn:hover { filter: brightness(0.95); }
 
-  .search-btn svg { display: block; }
+.search-btn svg { display: block; }
 </style>

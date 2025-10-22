@@ -1,47 +1,29 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
-import mapService from '@/services/mapService'
-import { useSelectedBuilding } from '@/composables/useSelectedBuilding'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { MapAPI } from '@/services/map/MapAPI'
 
 const container = ref<HTMLDivElement | null>(null)
-const { selectedBuildingId } = useSelectedBuilding()
-
-// Click handler para o canvas
-const handleClick = (event: MouseEvent) => {
-  if (!container.value) return
-  mapService.handleCanvasClick(event, container.value)
-}
+const mapAPI = new MapAPI()
 
 onMounted(async () => {
   if (!container.value) return
-  mapService.mount(container.value)
-  // Inicia carregamento da cena (executa apenas uma vez no service)
-  mapService.loadSceneFromUrl()
 
-  // Adicionar event listener para cliques
-  container.value.addEventListener('click', handleClick)
+  // Mount and initialize map
+  await mapAPI.mount(container.value)
 
-  // expor funções no window se quiser acesso no console
+  // Expose mapAPI globally for LocationSearch
   // @ts-ignore
-  window.highlightN = mapService.highlightN
-  // @ts-ignore
-  window.unhighlightN = mapService.unhighlightN
-  // @ts-ignore
-  window.loadedModels = mapService.loadedModels
+  window.mapAPI = mapAPI
+
+  console.log('[MapRenderer] MapAPI initialized and exposed globally')
 })
 
 onBeforeUnmount(() => {
-  if (!container.value) return
+  mapAPI.unmount()
 
-  // Remover event listener
-  container.value.removeEventListener('click', handleClick)
-
-  mapService.unmount(container.value)
-})
-
-// Watch for changes in selected building and update node colors
-watch(selectedBuildingId, (newBuildingId) => {
-  mapService.highlightBuildingNode(newBuildingId)
+  // Clean up global reference
+  // @ts-ignore
+  window.mapAPI = undefined
 })
 </script>
 
@@ -50,5 +32,11 @@ watch(selectedBuildingId, (newBuildingId) => {
 </template>
 
 <style scoped>
-.three-box { position: relative; width:100%; height:100%; overflow:hidden; border-radius:16px }
+.three-box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+}
 </style>

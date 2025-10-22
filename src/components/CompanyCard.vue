@@ -1,32 +1,34 @@
 <script setup lang="ts">
-import { useSelectedBuilding } from '../composables/useSelectedBuilding'
-import mapService from '@/services/mapService'
+import { ref } from 'vue'
 
 interface Props {
   name: string
   building: string
   floor?: string
   description: string
-  logoUrl?: string
+  imagePath?: string
 }
 
 const props = defineProps<Props>()
-const { setSelectedBuilding } = useSelectedBuilding()
 
+const imageError = ref(false)
+
+// Building click disabled - route search functionality takes precedence
 const handleClick = () => {
-  // Converter nome do building para ID
-  const buildingId = mapService.getBuildingIdByName(props.building)
-  if (buildingId !== undefined) {
-    setSelectedBuilding(buildingId)
-  }
+  console.log('[CompanyCard] Click disabled - use route search instead')
+}
+
+const handleImageError = () => {
+  console.warn(`Erro ao carregar imagem: ${props.imagePath}`)
+  imageError.value = true
 }
 </script>
 
 <template>
   <article class="company-card" :aria-label="`Empresa ${props.name}`">
     <div class="media" aria-hidden="true">
-      <div class="placeholder-img">IMG</div>
-      <!-- Quando houver logo real: <img :src="logoUrl" :alt="`Logo ${name}`" v-if="logoUrl" /> -->
+      <img v-if="imagePath && !imageError" :src="imagePath" :alt="`Logo ${name}`" class="company-logo" @error="handleImageError" />
+      <div v-else class="placeholder-img">IMG</div>
     </div>
     <div class="body">
       <h3 class="title">{{ name }}</h3>
@@ -61,6 +63,16 @@ const handleClick = () => {
 }
 
 .media { width: 120px; height: 120px; }
+
+.company-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+}
+
 .placeholder-img {
   width: 100%; height: 100%;
   background: linear-gradient(135deg,#d9d9df,#c4c4c9);
