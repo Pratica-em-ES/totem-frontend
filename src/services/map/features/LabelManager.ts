@@ -10,8 +10,10 @@ export class LabelManager {
   static BUILDING_FONT_FAMILY = 'Arial'
   static BUILDING_FONT_WEIGHT = 'normal'
   static BUILDING_PADDING = 20
-  static BUILDING_BG_COLOR = 'rgba(0, 0, 0, 0.7)'
+  static BUILDING_BG_COLOR = 'rgba(0, 0, 0, 0)'
   static BUILDING_TEXT_COLOR = '#ffffff'
+  static BUILDING_OUTLINE_COLOR = '#000000'
+  static BUILDING_OUTLINE_WIDTH = 20
   static BUILDING_HEIGHT_OFFSET = 2
   static BUILDING_SPRITE_HEIGHT = 2.5
   static BUILDING_RENDER_ORDER = 100
@@ -24,6 +26,8 @@ export class LabelManager {
   static NODE_FONT_WEIGHT = 'bold'
   static NODE_BG_COLOR = 'rgba(0, 0, 0, 0.6)'
   static NODE_TEXT_COLOR = '#ffffff'
+  static NODE_OUTLINE_COLOR = '#000000'
+  static NODE_OUTLINE_WIDTH = 3
   static NODE_HEIGHT = 5
   static NODE_SCALE_X = 3
   static NODE_SCALE_Y = 1.5
@@ -85,11 +89,18 @@ export class LabelManager {
         ctx.fillStyle = LabelManager.BUILDING_BG_COLOR
         ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-        // White text with building name
-        ctx.fillStyle = LabelManager.BUILDING_TEXT_COLOR
+        // Configure font
         ctx.font = `${LabelManager.BUILDING_FONT_WEIGHT} ${fontSize}px ${LabelManager.BUILDING_FONT_FAMILY}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
+
+        // Draw text outline
+        ctx.strokeStyle = LabelManager.BUILDING_OUTLINE_COLOR
+        ctx.lineWidth = LabelManager.BUILDING_OUTLINE_WIDTH
+        ctx.strokeText(name, canvas.width / 2, canvas.height / 2)
+
+        // Draw text fill
+        ctx.fillStyle = LabelManager.BUILDING_TEXT_COLOR
         ctx.fillText(name, canvas.width / 2, canvas.height / 2)
       }
 
@@ -149,10 +160,18 @@ export class LabelManager {
       ctx.fillStyle = LabelManager.NODE_BG_COLOR
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      ctx.fillStyle = LabelManager.NODE_TEXT_COLOR
+      // Configure font
       ctx.font = `${LabelManager.NODE_FONT_WEIGHT} ${LabelManager.NODE_FONT_SIZE}px ${LabelManager.NODE_FONT_FAMILY}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
+
+      // Draw text outline
+      ctx.strokeStyle = LabelManager.NODE_OUTLINE_COLOR
+      ctx.lineWidth = LabelManager.NODE_OUTLINE_WIDTH
+      ctx.strokeText(`${node.id}`, canvas.width / 2, canvas.height / 2)
+
+      // Draw text fill
+      ctx.fillStyle = LabelManager.NODE_TEXT_COLOR
       ctx.fillText(`${node.id}`, canvas.width / 2, canvas.height / 2)
     }
 
