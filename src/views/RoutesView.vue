@@ -1,19 +1,14 @@
 <script setup lang="ts">
 import SideMenu from '@/components/SideMenu.vue'
-import SearchBar from '@/components/SearchBar.vue'
 import MapRenderer from '@/components/MapRenderer.vue'
-
-function onSearch(payload: { query: string; category: string }) {
-  console.log('Home search:', payload)
-  // TODO: wire to store or API
-}
+import LocationSearch from '@/components/LocationSearch.vue'
 </script>
 
 <template>
   <main class="screen">
     <SideMenu />
-    <section class="content" aria-label="Início">
-      <SearchBar @search="onSearch" />
+    <section class="content" aria-label="Rotas">
+      <LocationSearch />
       <div class="map-container">
         <MapRenderer />
       </div>
