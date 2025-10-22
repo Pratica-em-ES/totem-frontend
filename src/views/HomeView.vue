@@ -3,6 +3,10 @@ import SideMenu from '@/components/SideMenu.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import MapRenderer from '@/components/MapRenderer.vue'
 
+defineOptions({
+  name: 'HomeView'
+})
+
 function onSearch(payload: { query: string; category: string }) {
   console.log('Home search:', payload)
   // TODO: wire to store or API

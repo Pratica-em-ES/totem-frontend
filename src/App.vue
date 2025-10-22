@@ -26,9 +26,13 @@ onMounted(async () => {
 
 <template>
   <div class="app-shell">
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <KeepAlive :include="['HomeView', 'RoutesView']">
+        <component :is="Component" />
+      </KeepAlive>
+    </RouterView>
   </div>
-  
+
 </template>
 
 <style scoped>
