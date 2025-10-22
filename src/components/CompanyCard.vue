@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { companyService } from '../services/companyService'
 
 interface Props {
-  id: string 
+  id: string
   name: string
   building: string
   floor?: string
@@ -12,10 +13,11 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const router = useRouter()
 
 const imagePath = ref<string | null>(null)
-const isLoadingImage = ref<boolean>(true) 
-const hasImageError = ref<boolean>(false) 
+const isLoadingImage = ref<boolean>(true)
+const hasImageError = ref<boolean>(false)
 
 const fullImageUrl = computed(() => {
   if (imagePath.value) {
@@ -23,6 +25,10 @@ const fullImageUrl = computed(() => {
   }
   return null
 })
+
+const goToDetails = () => {
+  router.push(`/empresas/${props.id}`)
+}
 
 onMounted(async () => {
   if (!props.id) {
@@ -35,7 +41,7 @@ onMounted(async () => {
   try {
     isLoadingImage.value = true
     hasImageError.value = false
-    
+
     const numericId = parseInt(props.id, 10)
 
     if (isNaN(numericId)) {
@@ -56,19 +62,19 @@ onMounted(async () => {
   <article class="company-card" :aria-label="`Empresa ${props.name}`">
     <div class="media" aria-hidden="true">
       <div class="placeholder-img">
-        
+
         <div v-if="isLoadingImage" class="img-content loading">
           <span>Carregando...</span>
         </div>
-        
+
         <img
           v-else-if="fullImageUrl && !hasImageError"
           :src="fullImageUrl"
           :alt="`Logo da ${props.name}`"
           class="img-content"
-          @error="hasImageError = true" 
+          @error="hasImageError = true"
         />
-        
+
         <div v-else class="img-content fallback">
           <span>IMG</span>
         </div>
@@ -79,9 +85,9 @@ onMounted(async () => {
       <p class="location">Prédio {{ building }}</p>
       <p class="desc">{{ description }}</p>
     </div>
-    
-    <div class="cta"> 
-      <button type="button" class="go" :aria-label="`Ver detalhes de ${name}`">
+
+    <div class="cta">
+      <button type="button" class="go" @click="goToDetails" :aria-label="`Ver detalhes de ${name}`">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 6l6 6-6 6" />
         </svg>
@@ -121,9 +127,9 @@ onMounted(async () => {
 .img-content {
   width: 100%;
   height: 100%;
-  object-fit: cover; 
-  object-position: center; 
-  display: flex; 
+  object-fit: cover;
+  object-position: center;
+  display: flex;
   align-items: center;
   justify-content: center;
   color: #4b5563;
@@ -148,20 +154,20 @@ onMounted(async () => {
 .body { display: flex; flex-direction: column; gap: 0.55rem; }
 .title { font-size: 1.32rem; font-weight: 700; color:#111827; line-height: 1.12; }
 .location { font-size: 0.97rem; font-weight: 600; color:#1f2937; }
-.desc { 
-  font-size: 0.95rem; 
-  line-height: 1.4; 
-  font-weight: 500; 
-  color: #111827; 
+.desc {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  font-weight: 500;
+  color: #111827;
   max-width: clamp(70ch, 70vw, 90ch);
-  
+
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   line-clamp: 3;
   overflow: hidden;
   text-overflow: ellipsis;
-  
+
   max-height: calc(1.4em * 3);
 }
 

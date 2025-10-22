@@ -1,10 +1,9 @@
 import type { CompanyDTO } from '../models/CompanyDTO';
 
-//const API_BASE_URL = import.meta.env.VITE_BACK_API_BASE_URL;
 const API_BASE_URL = 'http://localhost:8080';
 
 export class CompanyService {
-  private baseUrl: string;
+  private readonly baseUrl: string;
 
   constructor() {
     this.baseUrl = `${API_BASE_URL}/companies`;
@@ -31,7 +30,32 @@ export class CompanyService {
       throw new Error(`Falha ao carregar empresas: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
-  
+
+  async getCompanyById(id: string): Promise<CompanyDTO | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null; // Empresa não encontrada
+        }
+        throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+      }
+
+      const company: CompanyDTO = await response.json();
+      return company;
+    } catch (error) {
+      console.error(`Erro ao buscar empresa ${id}:`, error);
+      throw new Error(`Falha ao carregar empresa: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  }
+
   async getCompanyImagePath(id: number): Promise<string> {
     try {
       const response = await fetch(`${this.baseUrl}/${id}/image`, {
