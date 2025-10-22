@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import SideMenu from '@/components/SideMenu.vue'
 import CompanyList from '@/components/CompanyList.vue'
 import SearchBar from '@/components/SearchBar.vue';
 
+const searchQuery = ref('')
+const selectedCategory = ref('Todas')
+
 function onSearch(payload: { query: string; category: string }) {
-  console.log('Companies search:', payload);
-  // TODO: use payload to filter CompanyList
+  searchQuery.value = payload.query
+  selectedCategory.value = payload.category
 }
 </script>
 
@@ -14,8 +17,8 @@ function onSearch(payload: { query: string; category: string }) {
   <main class="screen">
     <SideMenu />
     <section class="content" aria-label="Empresas">
-      <SearchBar @search="onSearch" />
-      <CompanyList />
+  <SearchBar @search="onSearch" />
+  <CompanyList :category="selectedCategory" :search-query="searchQuery" />
     </section>
   </main>
 </template>

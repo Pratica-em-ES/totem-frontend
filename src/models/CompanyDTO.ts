@@ -11,5 +11,10 @@ export interface CompanyDTO {
 }
 
 export function filterCompaniesByCategory(companies: CompanyDTO[], category: string): CompanyDTO[] {
-  return companies.filter(company => company.category === category);
+  if (!category || category === 'Todas') return companies
+  const normalized = category.trim().toLowerCase()
+  return companies.filter(company => {
+    const parts = company.category.split(',').map(p => p.trim().toLowerCase()).filter(Boolean)
+    return parts.includes(normalized)
+  })
 }
