@@ -48,12 +48,22 @@
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 
 // Reactive variables to hold the input values
 const startPoint = ref('Totem Principal do TecnoPuc');
 const destination = ref('');
+
+const route = useRoute();
+
+onMounted(() => {
+  // Verifica se existe um parâmetro destinoNome na query e preenche o campo de destino
+  if (route.query.destinoNome) {
+    destination.value = String(route.query.destinoNome);
+  }
+});
 </script>
 
 <style scoped>
