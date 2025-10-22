@@ -54,12 +54,15 @@ const currentFilters = ref<SearchFilters>({
   building: '',
 })
 
+const props = defineProps<{ category?: string; searchQuery?: string }>()
+
 const companies = computed(() => {
   let filtered = rawCompanies.value
 
   // Search term filter
-  if (currentFilters.value.searchTerm) {
-    const term = currentFilters.value.searchTerm.trim().toLowerCase()
+  const effectiveSearch = currentFilters.value.searchTerm || props.searchQuery || ''
+  if (effectiveSearch) {
+    const term = effectiveSearch.trim().toLowerCase()
     filtered = filtered.filter(c => 
       c.name.toLowerCase().includes(term) || 
       c.description.toLowerCase().includes(term)
@@ -69,6 +72,15 @@ const companies = computed(() => {
   // Building filter
   if (currentFilters.value.building) {
     filtered = filtered.filter(c => c.building === currentFilters.value.building)
+  }
+
+  const categoryFilter = props.category && props.category !== 'Todas' ? props.category.trim() : ''
+  if (categoryFilter) {
+    const normalizedFilter = categoryFilter.toLowerCase()
+    filtered = filtered.filter(c => {
+      const parts = c.category.split(',').map(p => p.trim().toLowerCase()).filter(Boolean)
+      return parts.includes(normalizedFilter)
+    })
   }
 
   return filtered

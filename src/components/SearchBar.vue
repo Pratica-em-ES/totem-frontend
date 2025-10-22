@@ -25,7 +25,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
 import { getCategories } from "@/services/categoryService.js"; 
 
@@ -51,6 +51,10 @@ async function fetchCategories() {
 function onSearch() {
   emit('search', { query: searchQuery.value, category: selectedCategory.value });
 }
+
+watch(selectedCategory, () => {
+  emit('search', { query: searchQuery.value, category: selectedCategory.value });
+});
 </script>
 
 <style scoped>
