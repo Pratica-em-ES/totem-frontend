@@ -2,13 +2,9 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { FontLoader } from 'three/addons/loaders/FontLoader.js'
-
-type Building = {
-    name: string
-    modelPath: string
-    node: { x: number; y: number }
-}
-type Edge = { width: number; nodeA: { x: number; y: number }; nodeB: { x: number; y: number } }
+import type { MapDTO, MapBuildingDTO } from '../models/MapDTO'
+import type { EdgeDTO } from '../models/EdgeDTO'
+import type { NodeDTO } from '../models/NodeDTO'
 
 let initialized = false
 let renderer: THREE.WebGLRenderer | null = null
@@ -98,10 +94,18 @@ async function loadSceneFromUrl(url?: string) {
 
     try {
         const res = await fetch(mapUrl)
-        const data = await res.json()
+        const data: MapDTO = await res.json()
         if (scene) {
-            loadGround(data.edges)
-            await loadModels(data.buildings)
+            // Criar mapa de nodes a partir da lista de nodes
+            const nodesMap = new Map<number, NodeDTO>()
+            data.nodes.forEach(node => {
+                nodesMap.set(node.id, node)
+            })
+
+            // Processar edges para carregar o chão
+            loadGround(data.edges, nodesMap)
+            // Carregar modelos 3D dos buildings
+            await loadModels(data.buildings, nodesMap)
         }
     } catch (err) {
         console.error('Erro loadSceneFromUrl', err)
@@ -109,7 +113,7 @@ async function loadSceneFromUrl(url?: string) {
 }
 
 /* --- Copiar/portar aqui as funções de loadGround e loadModels (adaptadas) --- */
-function loadGround(streets: Edge[]) {
+function loadGround(streets: EdgeDTO[], nodesMap: Map<number, NodeDTO>) {
     if (!scene) return
     const worldSize = 90
     // canvas roads -> alpha map
@@ -127,10 +131,21 @@ function loadGround(streets: Edge[]) {
         ctx.lineJoin = 'round'
         ctx.strokeStyle = 'rgba(255,255,255,1)'
         streets.forEach(edge => {
-            ctx.lineWidth = edge.width * (sizePx / worldSize)
+            const nodeA = nodesMap.get(edge.aNodeId)
+            const nodeB = nodesMap.get(edge.bNodeId)
+
+            if (!nodeA || !nodeB) {
+                console.warn(`Edge ${edge.id}: Missing nodes - aNodeId: ${edge.aNodeId}, bNodeId: ${edge.bNodeId}`)
+                return
+            }
+
+            // Usar o comprimento (length) para calcular a largura proporcional da rua
+            // Assumindo uma largura padrão baseada no comprimento
+            const defaultWidth = 2.5
+            ctx.lineWidth = defaultWidth * (sizePx / worldSize)
             ctx.beginPath()
-            const [px1, pz1] = mapToCanvas(edge.nodeA.x, edge.nodeA.y)
-            const [px2, pz2] = mapToCanvas(edge.nodeB.x, edge.nodeB.y)
+            const [px1, pz1] = mapToCanvas(nodeA.x, nodeA.y)
+            const [px2, pz2] = mapToCanvas(nodeB.x, nodeB.y)
             ctx.moveTo(px1, pz1); ctx.lineTo(px2, pz2); ctx.stroke()
         })
     }
@@ -175,7 +190,7 @@ function loadGround(streets: Edge[]) {
     scene!.add(grassPlane)
 }
 
-async function loadModels(buildings: Building[]) {
+async function loadModels(buildings: MapBuildingDTO[], nodesMap: Map<number, NodeDTO>) {
     if (!scene) return
     const loader = new GLTFLoader()
     const fontLoader = new FontLoader()
@@ -220,6 +235,13 @@ async function loadModels(buildings: Building[]) {
 
     for (const building of buildings) {
         const name = building.name
+        const node = nodesMap.get(building.nodeId)
+
+        if (!node) {
+            console.warn(`Building ${name}: Node ${building.nodeId} not found`)
+            continue
+        }
+
         await new Promise<void>((resolve) => {
             loader.load(building.modelPath, gltf => {
                 const model = gltf.scene
@@ -231,7 +253,7 @@ async function loadModels(buildings: Building[]) {
                         mat.metalness = 0
                     }
                 })
-                model.position.set(building.node.x, 0.1, building.node.y)
+                model.position.set(node.x, 0.1, node.y)
                 scene!.add(model)
                 if (name !== 'tecnopuc') {
                     if (fontLoaded && font) createLabel(name, model, font)
