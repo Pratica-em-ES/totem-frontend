@@ -12,7 +12,7 @@ const router = useRouter()
 
 const items: MenuItem[] = [
   { key: 'home', label: 'Início', icon: 'home', to: '/home' },
-  { key: 'rotas', label: 'Rotas', icon: 'route', to: '/exemplo' },
+  { key: 'rotas', label: 'Rotas', icon: 'route', to: '/rotas' },
   { key: 'empresas', label: 'Empresas', icon: 'users', to: '/empresas' },
 ]
 
@@ -59,7 +59,7 @@ function exit() {
 
     <button class="exit" type="button" @click="exit">Sair</button>
   </aside>
-  
+
 </template>
 
 <style scoped>

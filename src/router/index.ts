@@ -20,8 +20,8 @@ const router = createRouter({
       component: HomeView,
   },
     {
-      path: '/exemplo',
-      name: 'exemplo',
+      path: '/rotas',
+      name: 'rotas',
       component: ExampleView,
     },
     {

@@ -59,11 +59,11 @@ const goBack = () => {
 const goToMap = () => {
   if (company.value) {
     router.push({
-      path: '/exemplo',
+      path: '/rotas',
       query: { destinoId: company.value.id, destinoNome: company.value.name }
     })
   } else {
-    router.push('/exemplo')
+    router.push('/rotas')
   }
 }
 </script>
