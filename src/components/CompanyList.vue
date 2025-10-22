@@ -107,6 +107,7 @@ defineExpose({
         :key="c.id"
         :name="c.name"
         :building="c.building"
+        :id="c.id"
         :description="c.description"
       />
       
