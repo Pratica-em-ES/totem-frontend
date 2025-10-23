@@ -24,8 +24,6 @@ RUN npm run build
 
 # Stage 5: Production with Vite preview
 FROM node:20-alpine as production
-ARG VITE_BACKEND_URL
-ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
