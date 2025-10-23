@@ -19,10 +19,12 @@ export default defineConfig({
   },
   server: {
     host: true,
-    strictPort: false
+    strictPort: false,
+    allowedHosts: ['all']
   },
   preview: {
     host: true,
-    strictPort: false
+    strictPort: false,
+    allowedHosts: ['all']
   }
 })
