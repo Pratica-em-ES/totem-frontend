@@ -33,6 +33,8 @@ export class MapAPI implements IMapAPI {
   private raycastHandler: RaycastHandler
   private initialized = false
   private currentLocationNodeId: number | null = null
+  private currentAnimationFrame: number | null = null
+  private currentAnimationPromise: Promise<void> | null = null
 
   constructor() {
     // Initialize state
@@ -300,6 +302,53 @@ export class MapAPI implements IMapAPI {
   }
 
   /**
+   * Trace a route from one node to another by fetching from backend
+   * This is the main entry point for route tracing
+   */
+  async traceRouteByNodeIds(fromNodeId: number, toNodeId: number): Promise<void> {
+    try {
+      console.log('[MapAPI] Fetching route from:', fromNodeId, 'to:', toNodeId)
+
+      const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+      const response = await fetch(
+        `${API_BASE_URL}/routes?fromNodeId=${fromNodeId}&toNodeId=${toNodeId}`
+      )
+
+      if (!response.ok) {
+        console.error('[MapAPI] Failed to fetch route, status:', response.status)
+        if (response.status === 404) {
+          console.warn('[MapAPI] No route found between nodes')
+        }
+        return
+      }
+
+      const nodeIds: number[] = await response.json()
+      console.log('[MapAPI] Route received:', nodeIds)
+
+      if (nodeIds.length === 0) {
+        console.warn('[MapAPI] Empty route received')
+        return
+      }
+
+      // Clear existing route first
+      this.clearRoute()
+
+      // Small delay to ensure route is cleared
+      await new Promise(resolve => setTimeout(resolve, 50))
+
+      // Trace the new route
+      this.traceRoute(nodeIds)
+
+      // Animate to top-down view and wait for it to complete
+      await this.animateToTopDownView(2000)
+
+      console.log('[MapAPI] Route traced and animated successfully')
+    } catch (error) {
+      console.error('[MapAPI] Error fetching/tracing route:', error)
+    }
+  }
+
+  /**
    * Clear the current route
    */
   clearRoute(): void {
@@ -372,28 +421,61 @@ export class MapAPI implements IMapAPI {
   /**
    * Animate camera to top-down view with smooth zoom out and rotation
    * Temporarily disables OrbitControls during animation
+   * Returns a promise that resolves when animation completes
    */
-  animateToTopDownView(duration: number = 1500): void {
+  animateToTopDownView(duration: number = 1500): Promise<void> {
+    // Return existing promise if animation is already running
+    if (this.currentAnimationPromise) {
+      console.log('[MapAPI] Animation already in progress, returning existing promise')
+      return this.currentAnimationPromise
+    }
+
     // Check if camera animation is enabled
     if (!featureFlags.enableCameraAnimation) {
       console.log('[MapAPI] Camera animation disabled by feature flag')
-      return
+      return Promise.resolve()
     }
 
     if (!this.state.camera) {
       console.warn('[MapAPI] Camera not initialized')
-      return
+      return Promise.resolve()
+    }
+
+    // Cancel any ongoing animation frame
+    if (this.currentAnimationFrame !== null) {
+      console.log('[MapAPI] Cancelling previous animation frame:', this.currentAnimationFrame)
+      cancelAnimationFrame(this.currentAnimationFrame)
+      this.currentAnimationFrame = null
     }
 
     const camera = this.state.camera
     const controls = this.controlsManager.getControls()
 
+    const targetPosition = new THREE.Vector3(0, 600, 0) // Top-down maximum zoom out
+    const targetUp = new THREE.Vector3(0, 1, 0) // Upright orientation
+    const centerTarget = new THREE.Vector3(0, 0, 0) // Always look at center
+
+    // Check if already at target position (within threshold)
+    const positionThreshold = 5 // 5 units tolerance
+    const upThreshold = 0.01 // Very small tolerance for up vector
+    const isAtTargetPosition = camera.position.distanceTo(targetPosition) < positionThreshold
+    const isUpright = camera.up.distanceTo(targetUp) < upThreshold
+
+    if (isAtTargetPosition && isUpright) {
+      console.log('[MapAPI] Camera already at target position, skipping animation')
+
+      // Ensure controls are looking at center
+      if (controls) {
+        controls.target.copy(centerTarget)
+        controls.update()
+      }
+
+      return Promise.resolve()
+    }
+
     console.log('[MapAPI] Starting camera animation...')
     console.log('[MapAPI] Initial position:', camera.position)
-    console.log('[MapAPI] Controls enabled:', controls?.enabled)
-
-    // Set animation flag to prevent controls from updating in render loop
-    this.state.isCameraAnimating = true
+    console.log('[MapAPI] Target position:', targetPosition)
 
     // Completely disable controls during animation
     const wasEnabled = controls ? controls.enabled : false
@@ -403,16 +485,21 @@ export class MapAPI implements IMapAPI {
     }
 
     const startPosition = camera.position.clone()
-    const targetPosition = new THREE.Vector3(0, 600, 0) // Maximum zoom out distance
-    const centerTarget = new THREE.Vector3(0, 0, 0)
+    const startQuaternion = camera.quaternion.clone()
 
-    // Extract only the "up" vectors to interpolate the roll
-    const startUp = camera.up.clone().normalize()
-    const targetUp = new THREE.Vector3(0, 1, 0)
+    // Use Euler angles for explicit control
+    // For top-down view with north up:
+    // - Pitch (X): -90° (looking straight down)
+    // - Yaw (Y): 0° (north direction)
+    // - Roll (Z): 0° (no tilt)
+    // Order: YXZ is important for proper gimbal behavior
 
-    // We'll interpolate up vectors and then use lookAt
-    // But we need to make lookAt respect our interpolated up vector
-    // Solution: Build camera matrix manually from forward, up, right vectors
+    const targetEuler = new THREE.Euler(-Math.PI / 2, 0, 0, 'YXZ')
+    const targetQuaternion = new THREE.Quaternion().setFromEuler(targetEuler)
+
+    console.log('[MapAPI] Start quaternion:', startQuaternion)
+    console.log('[MapAPI] Target Euler angles (degrees): pitch=-90, yaw=0, roll=0')
+    console.log('[MapAPI] Target quaternion:', targetQuaternion)
 
     const startTime = Date.now()
 
@@ -421,47 +508,64 @@ export class MapAPI implements IMapAPI {
       return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
     }
 
-    const animate = () => {
-      const elapsed = Date.now() - startTime
-      const rawProgress = Math.min(elapsed / duration, 1)
-      const progress = easeInOutCubic(rawProgress)
+    // Wrap animation in a promise
+    this.currentAnimationPromise = new Promise<void>((resolve) => {
+      const animate = () => {
+        const elapsed = Date.now() - startTime
+        const rawProgress = Math.min(elapsed / duration, 1)
+        const progress = easeInOutCubic(rawProgress)
 
-      // Interpolate position
-      camera.position.lerpVectors(startPosition, targetPosition, progress)
+        // Simultaneously interpolate BOTH position AND rotation smoothly
+        // This ensures camera rotates to correct orientation while moving
 
-      // Interpolate up vector (controls the roll/straightening)
-      const interpolatedUp = new THREE.Vector3().lerpVectors(startUp, targetUp, progress).normalize()
+        // 1. Interpolate position (move to top-down location)
+        camera.position.lerpVectors(startPosition, targetPosition, progress)
 
-      // Set the interpolated up vector
-      camera.up.copy(interpolatedUp)
+        // 2. Interpolate rotation using spherical linear interpolation (slerp)
+        //    This smoothly transitions the camera orientation (rotation + up vector)
+        //    while maintaining the look-at-center throughout
+        camera.quaternion.slerpQuaternions(startQuaternion, targetQuaternion, progress)
 
-      // Use lookAt to orient camera toward center while respecting the interpolated up vector
-      camera.lookAt(centerTarget)
+        // 3. Update camera matrices to apply changes
+        camera.updateMatrix()
+        camera.updateMatrixWorld()
 
-      // Update projection matrix to ensure changes are applied
-      camera.updateProjectionMatrix()
-
-      if (rawProgress < 1) {
-        requestAnimationFrame(animate)
-      } else {
-        // Animation complete - update controls target to match new position
+        // 4. Keep controls centered
         if (controls) {
           controls.target.copy(centerTarget)
-          controls.enabled = wasEnabled
           controls.update()
-          console.log('[MapAPI] Controls re-enabled')
         }
 
-        // Re-enable controls updates in render loop
-        this.state.isCameraAnimating = false
+        if (rawProgress < 1) {
+          this.currentAnimationFrame = requestAnimationFrame(animate)
+        } else {
+          // Animation complete - clear state
+          this.currentAnimationFrame = null
+          this.currentAnimationPromise = null
 
-        console.log('[MapAPI] Camera animation completed')
-        console.log('[MapAPI] Final position:', camera.position)
-        console.log('[MapAPI] Final target:', controls?.target)
+          // Re-enable controls
+          if (controls) {
+            controls.target.copy(centerTarget)
+            controls.enabled = wasEnabled
+            controls.update()
+            console.log('[MapAPI] Controls re-enabled, focused on center')
+          }
+
+          console.log('[MapAPI] Camera animation completed')
+          console.log('[MapAPI] Final position:', camera.position)
+          console.log('[MapAPI] Final up vector:', camera.up)
+          console.log('[MapAPI] Focused on:', centerTarget)
+
+          // Resolve promise
+          resolve()
+        }
       }
-    }
 
-    animate()
+      // Start animation
+      this.currentAnimationFrame = requestAnimationFrame(animate)
+    })
+
+    return this.currentAnimationPromise
   }
 
   /**

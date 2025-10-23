@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useImagesCache } from '@/composables/useImagesCache'
 
 interface Props {
+  id: number
   name: string
   building: string
   floor?: string
@@ -11,6 +12,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const emit = defineEmits<{
+  click: [id: number]
+}>()
 
 const imageError = ref(false)
 const { getImage } = useImagesCache()
@@ -24,9 +28,8 @@ const imageUrl = computed(() => {
   return cached || props.imagePath
 })
 
-// Building click disabled - route search functionality takes precedence
 const handleClick = () => {
-  console.log('[CompanyCard] Click disabled - use route search instead')
+  emit('click', props.id)
 }
 
 const handleImageError = () => {

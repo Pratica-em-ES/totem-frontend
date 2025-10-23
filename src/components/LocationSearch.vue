@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useCompaniesCache } from '@/composables/useCompaniesCache'
 import { useCurrentLocation } from '@/composables/useCurrentLocation'
 
 // Get current location from composable
 const { currentLocation } = useCurrentLocation()
+const route = useRoute()
+const router = useRouter()
 
 interface SearchableItem {
   id: string
@@ -103,6 +106,81 @@ watch(searchQuery, (newValue) => {
   highlightedIndex.value = 0
 })
 
+// Extract route processing logic to be reused by multiple watchers
+const processRouteParams = async () => {
+  console.log('[LocationSearch] Processing route params...')
+
+  const fromParam = route.query.from
+  const toParam = route.query.to
+
+  // If no params, clear everything
+  if (!fromParam || !toParam) {
+    console.log('[LocationSearch] No route params, clearing route and search')
+    searchQuery.value = ''
+    selectedItem.value = null
+
+    // Wait for mapAPI and clear route
+    await waitForMapAPI()
+    // @ts-ignore
+    if (window.mapAPI && window.mapAPI.clearRoute) {
+      // @ts-ignore
+      window.mapAPI.clearRoute()
+      console.log('[LocationSearch] Route cleared from map')
+    }
+    return
+  }
+
+  // Params exist, update UI and trace route
+  const fromNodeId = Number(fromParam)
+  const toNodeId = Number(toParam)
+
+  console.log('[LocationSearch] URL has route params:', fromNodeId, '->', toNodeId)
+
+  // Wait for data to be loaded
+  if (searchableItems.value.length === 0) {
+    console.log('[LocationSearch] Waiting for searchableItems to be loaded...')
+    return
+  }
+
+  // Update UI: find destination and update search bar
+  const destinationItem = searchableItems.value.find(item => item.nodeId === toNodeId)
+  if (destinationItem) {
+    searchQuery.value = `${destinationItem.icon} ${destinationItem.displayName}`
+    selectedItem.value = destinationItem
+    console.log('[LocationSearch] UI updated with destination:', destinationItem.displayName)
+  }
+
+  // Wait for mapAPI and trace route
+  await waitForMapAPI()
+
+  // @ts-ignore
+  if (window.mapAPI && window.mapAPI.traceRouteByNodeIds) {
+    console.log('[LocationSearch] Tracing route on map:', fromNodeId, '->', toNodeId)
+    // @ts-ignore
+    await window.mapAPI.traceRouteByNodeIds(fromNodeId, toNodeId)
+    console.log('[LocationSearch] Route traced successfully')
+  } else {
+    console.warn('[LocationSearch] mapAPI.traceRouteByNodeIds not available')
+  }
+}
+
+// Watch route query params - SINGLE SOURCE OF TRUTH for route state
+watch(() => route.query, async (newQuery) => {
+  console.log('[LocationSearch] Route query changed:', newQuery)
+  await processRouteParams()
+}, { deep: true, immediate: true })
+
+// Watch searchableItems - re-process route when data loads
+watch(searchableItems, async (newItems) => {
+  console.log('[LocationSearch] searchableItems changed, length:', newItems.length)
+
+  // Only re-process if data just became available AND route params exist
+  if (newItems.length > 0 && (route.query.from || route.query.to)) {
+    console.log('[LocationSearch] Data loaded with route params present, re-processing...')
+    await processRouteParams()
+  }
+})
+
 // Load data on mount
 onMounted(async () => {
   console.log('[LocationSearch] Loading data...')
@@ -119,6 +197,9 @@ onMounted(async () => {
     console.log('[LocationSearch] Map loaded, buildings:', mapData.value.buildings.length)
 
     console.log('[LocationSearch] Total searchable items:', searchableItems.value.length)
+
+    // Note: Route handling is now done by the watch on route.query
+    // This ensures consistent behavior whether params are present on mount or change later
   } catch (error) {
     console.error('[LocationSearch] Error loading data:', error)
   }
@@ -126,14 +207,23 @@ onMounted(async () => {
 
 // Handle item selection
 const selectItem = async (item: SearchableItem) => {
-  selectedItem.value = item
-  searchQuery.value = `${item.icon} ${item.displayName}`
-  showDropdown.value = false
-
   console.log('[LocationSearch] Selected item:', item)
 
-  // Calculate and trace route
-  await calculateRoute()
+  // Update URL with route params
+  // The watcher will automatically trace the route when URL changes
+  const fromNodeId = currentLocation.nodeId
+  const toNodeId = item.nodeId
+
+  router.replace({
+    path: '/rotas',
+    query: {
+      from: fromNodeId,
+      to: toNodeId
+    }
+  })
+
+  console.log('[LocationSearch] URL updated with route params:', { from: fromNodeId, to: toNodeId })
+  console.log('[LocationSearch] Watcher will handle route tracing')
 }
 
 // Handle keyboard navigation
@@ -179,66 +269,35 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-// Calculate route and trace it on the map
-const calculateRoute = async () => {
-  if (!selectedItem.value) return
-
-  isLoadingRoute.value = true
-
-  try {
-    const startNodeId = currentLocation.nodeId
-    const endNodeId = selectedItem.value.nodeId
-
-    console.log('[LocationSearch] Calculating route from node:', startNodeId, '->', endNodeId)
-
-    // Fetch route from backend using nodeIds
-    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
-    const response = await fetch(
-      `${API_BASE_URL}/routes?fromNodeId=${startNodeId}&toNodeId=${endNodeId}`
-    )
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn('[LocationSearch] No route found between nodes')
-        alert('Não foi possível encontrar uma rota para este destino. O local pode estar desconectado do mapa.')
-        return
-      }
-      throw new Error('Failed to fetch route')
-    }
-
-    const nodeIds: number[] = await response.json()
-    console.log('[LocationSearch] Route received:', nodeIds)
-
-    if (nodeIds.length === 0) {
-      console.warn('[LocationSearch] Empty route received')
-      alert('Rota vazia retornada pelo servidor.')
+// Wait for mapAPI to be available
+const waitForMapAPI = (): Promise<void> => {
+  return new Promise((resolve) => {
+    // @ts-ignore
+    if (window.mapAPI) {
+      resolve()
       return
     }
 
-    // Trace route on map using mapAPI
-    // @ts-ignore
-    if (window.mapAPI) {
+    const checkInterval = setInterval(() => {
       // @ts-ignore
-      window.mapAPI.traceRoute(nodeIds)
-      console.log('[LocationSearch] Route traced with mapAPI')
+      if (window.mapAPI) {
+        clearInterval(checkInterval)
+        resolve()
+      }
+    }, 100)
 
-      // Animate camera to top-down view for better route visualization
-      // @ts-ignore
-      window.mapAPI.animateToTopDownView(2000)
-      console.log('[LocationSearch] Animating to top-down view')
-    } else {
-      console.warn('[LocationSearch] mapAPI not available')
-    }
-  } catch (error) {
-    console.error('[LocationSearch] Error calculating route:', error)
-  } finally {
-    isLoadingRoute.value = false
-  }
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      clearInterval(checkInterval)
+      console.warn('[LocationSearch] mapAPI not available after 10s timeout')
+      resolve()
+    }, 10000)
+  })
 }
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
 </script>
 
 <template>

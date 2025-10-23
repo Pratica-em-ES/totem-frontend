@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import CompanyCard from './CompanyCard.vue'
 import { useCompaniesCache } from '@/composables/useCompaniesCache'
 import type { CompanyDTO } from '../models/CompanyDTO'
+
+const router = useRouter()
 
 export interface Company {
   id: number
@@ -93,6 +96,10 @@ const handleFiltersChanged = (filters: Partial<SearchFilters>) => {
   currentFilters.value = { ...currentFilters.value, ...filters }
 }
 
+const handleCardClick = (companyId: number) => {
+  router.push(`/empresas/${companyId}`)
+}
+
 // Export for external integration
 defineExpose({ 
   setSearch(value: string) { 
@@ -120,10 +127,12 @@ defineExpose({
       <CompanyCard
         v-for="c in companies"
         :key="c.id"
+        :id="c.id"
         :name="c.name"
         :building="c.building"
         :description="c.description"
         :image-path="c.imagePath"
+        @click="handleCardClick"
       />
       
       <div v-if="companies.length === 0" class="no-results">
