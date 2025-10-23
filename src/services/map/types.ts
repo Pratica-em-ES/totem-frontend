@@ -1,6 +1,5 @@
 import * as THREE from 'three'
-import type { MapDTO } from '@/models/MapDTO'
-import type { BuildingDTO } from '@/models/BuildingDTO'
+import type { MapDTO, MapBuildingDTO } from '@/models/MapDTO'
 import type { NodeDTO } from '@/models/NodeDTO'
 import type { EdgeDTO } from '@/models/EdgeDTO'
 
@@ -13,7 +12,7 @@ export interface IMapAPI {
   unmount(): void
 
   // Building Operations
-  getHighlightedBuilding(): BuildingDTO | null
+  getHighlightedBuilding(): MapBuildingDTO | null
   highlightBuilding(buildingId: number | string): void
   clearHighlight(): void
   highlightMultiple(buildingIds: Array<number | string>): void
@@ -23,9 +22,9 @@ export interface IMapAPI {
   clearRoute(): void
 
   // Queries
-  getBuildingByName(name: string): BuildingDTO | null
-  getBuildingById(id: number): BuildingDTO | null
-  getAllBuildings(): BuildingDTO[]
+  getBuildingByName(name: string): MapBuildingDTO | null
+  getBuildingById(id: number): MapBuildingDTO | null
+  getAllBuildings(): MapBuildingDTO[]
 
   // Click Handling
   handleClick(event: MouseEvent): void
@@ -126,4 +125,4 @@ export interface RouteSegment {
   edge?: EdgeDTO
 }
 
-export type { MapDTO, BuildingDTO, NodeDTO, EdgeDTO }
+export type { MapDTO, MapBuildingDTO, NodeDTO, EdgeDTO }

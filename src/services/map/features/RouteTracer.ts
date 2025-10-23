@@ -9,7 +9,7 @@ import type { MapState, RouteConfig, NodeDTO } from '../types'
  */
 export class RouteTracer {
   // Route Style
-  static ROUTE_COLOR = 'rgb(0, 90, 226)'
+  static ROUTE_COLOR = 0x005ae2  // rgb(0, 90, 226) in hex
   static ROUTE_WIDTH = 2.0
   static ROUTE_OPACITY = 1
   static ROUTE_HEIGHT = 0

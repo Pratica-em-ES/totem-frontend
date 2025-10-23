@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { IMapAPI, MapState, BuildingDTO, NodeDTO } from './types'
+import type { IMapAPI, MapState, MapBuildingDTO, NodeDTO } from './types'
 import { SceneManager } from './core/SceneManager'
 import { RendererManager } from './core/RendererManager'
 import { ControlsManager } from './core/ControlsManager'
@@ -225,7 +225,7 @@ export class MapAPI implements IMapAPI {
    * Load building models
    */
   private async loadBuildings(
-    buildings: BuildingDTO[],
+    buildings: MapBuildingDTO[],
     nodesMap: Map<number, NodeDTO>
   ): Promise<void> {
     for (const building of buildings) {
@@ -269,7 +269,7 @@ export class MapAPI implements IMapAPI {
   /**
    * Get the currently highlighted building
    */
-  getHighlightedBuilding(): BuildingDTO | null {
+  getHighlightedBuilding(): MapBuildingDTO | null {
     return this.buildingHighlighter.getHighlightedBuilding()
   }
 
@@ -358,7 +358,7 @@ export class MapAPI implements IMapAPI {
   /**
    * Get building by name
    */
-  getBuildingByName(name: string): BuildingDTO | null {
+  getBuildingByName(name: string): MapBuildingDTO | null {
     if (!this.state.mapData) return null
     return this.state.mapData.buildings.find((b) => b.name === name) || null
   }
@@ -366,7 +366,7 @@ export class MapAPI implements IMapAPI {
   /**
    * Get building by ID
    */
-  getBuildingById(id: number): BuildingDTO | null {
+  getBuildingById(id: number): MapBuildingDTO | null {
     if (!this.state.mapData) return null
     return this.state.mapData.buildings.find((b) => b.id === id) || null
   }
@@ -374,7 +374,7 @@ export class MapAPI implements IMapAPI {
   /**
    * Get all buildings
    */
-  getAllBuildings(): BuildingDTO[] {
+  getAllBuildings(): MapBuildingDTO[] {
     return this.state.mapData?.buildings || []
   }
 

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { MapState, BuildingDTO } from '../types'
+import type { MapState, MapBuildingDTO } from '../types'
 import type { RendererManager } from '../core/RendererManager'
 import { featureFlags } from '@/config/featureFlags'
 
@@ -81,7 +81,7 @@ export class BuildingHighlighter {
   /**
    * Get the currently highlighted building
    */
-  getHighlightedBuilding(): BuildingDTO | null {
+  getHighlightedBuilding(): MapBuildingDTO | null {
     if (this.state.highlightedBuildingId === null || !this.state.mapData) {
       return null
     }
