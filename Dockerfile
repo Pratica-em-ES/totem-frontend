@@ -17,6 +17,8 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # Stage 4: Build for production
 FROM dependencies as build
+ARG VITE_BACKEND_URL
+ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
 COPY . .
 RUN npm run build
 
