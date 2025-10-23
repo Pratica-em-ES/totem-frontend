@@ -1,12 +1,38 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+import { onMounted } from 'vue'
+import { useCompaniesCache } from '@/composables/useCompaniesCache'
+import { useModelsCache } from '@/composables/useModelsCache'
+import { useImagesCache } from '@/composables/useImagesCache'
+
+const { fetchCompanies } = useCompaniesCache()
+const { fetchModels } = useModelsCache()
+const { fetchImages } = useImagesCache()
+
+// Carregar empresas, modelos e imagens ao iniciar a aplicação
+onMounted(async () => {
+  try {
+    // Carregar todos em paralelo para otimizar o tempo de inicialização
+    await Promise.all([
+      fetchCompanies(),
+      fetchModels(),
+      fetchImages()
+    ])
+  } catch (err) {
+    console.error('Erro ao carregar dados na inicialização:', err)
+  }
+})
 </script>
 
 <template>
   <div class="app-shell">
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <KeepAlive :include="['HomeView', 'RoutesView']">
+        <component :is="Component" />
+      </KeepAlive>
+    </RouterView>
   </div>
-  
+
 </template>
 
 <style scoped>

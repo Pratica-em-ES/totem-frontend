@@ -1,26 +1,35 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue'
-import mapService from '@/services/mapService'
+import { MapAPI } from '@/services/map/MapAPI'
+import { useCurrentLocation } from '@/composables/useCurrentLocation'
 
 const container = ref<HTMLDivElement | null>(null)
+const mapAPI = new MapAPI()
+const { currentLocation } = useCurrentLocation()
 
 onMounted(async () => {
   if (!container.value) return
-  mapService.mount(container.value)
-  // Inicia carregamento da cena (executa apenas uma vez no service)
-  mapService.loadSceneFromUrl()
-  // expor funções no window se quiser acesso no console
+
+  // Set current location BEFORE mounting (so buildings load with pin)
+  mapAPI.showCurrentLocationMarker(currentLocation.nodeId)
+  console.log('[MapRenderer] Current location set to node', currentLocation.nodeId)
+
+  // Mount and initialize map
+  await mapAPI.mount(container.value)
+
+  // Expose mapAPI globally for LocationSearch
   // @ts-ignore
-  window.highlightN = mapService.highlightN
-  // @ts-ignore
-  window.unhighlightN = mapService.unhighlightN
-  // @ts-ignore
-  window.loadedModels = mapService.loadedModels
+  window.mapAPI = mapAPI
+
+  console.log('[MapRenderer] MapAPI initialized and exposed globally')
 })
 
 onBeforeUnmount(() => {
-  if (!container.value) return
-  mapService.unmount(container.value)
+  mapAPI.unmount()
+
+  // Clean up global reference
+  // @ts-ignore
+  window.mapAPI = undefined
 })
 </script>
 
@@ -29,5 +38,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.three-box { position: relative; width:100%; height:100%; overflow:hidden; border-radius:16px }
+.three-box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+}
 </style>

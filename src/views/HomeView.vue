@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import SideMenu from '@/components/SideMenu.vue'
-import SearchBar from '@/components/SearchBar.vue';
-import MapRenderer from '@/components/MapRenderer.vue' // <--- import do mapa
+import SearchBar from '@/components/SearchBar.vue'
+import MapRenderer from '@/components/MapRenderer.vue'
+
+defineOptions({
+  name: 'HomeView'
+})
 
 function onSearch(payload: { query: string; category: string }) {
-  console.log('Home search:', payload);
+  console.log('Home search:', payload)
   // TODO: wire to store or API
 }
 </script>
@@ -12,39 +16,43 @@ function onSearch(payload: { query: string; category: string }) {
 <template>
   <main class="screen">
     <SideMenu />
-    <section class="content" aria-label="Área principal">
+    <section class="content" aria-label="Início">
       <SearchBar @search="onSearch" />
-
-      <!-- trocar aqui: usar mesma classe do Visualiser -->
-      <div class="map-renderer-style">
+      <div class="map-container">
         <MapRenderer />
       </div>
-
+      <div class="bottom-spacer"></div>
     </section>
   </main>
 </template>
 
 <style scoped>
 .screen {
-  min-height: 100dvh;
+  height: 100dvh;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 1.25rem;
   padding: 1rem 1.25rem;
+  overflow: hidden;
 }
 
-.content { 
-  display:flex; 
-  flex-direction:column;
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
 }
 
-/* substituir home-map-host por estilos do Visualiser */
-  .map-renderer-style {
-    position: fixed;
-    bottom: 5.8%;
-    right: 3.4%;
-    width: 83.5%;
-    height: 79%;
-    /* border: 1px solid red; */
-  }
+.map-container {
+  flex: 1;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bottom-spacer {
+  height: 1rem;
+  flex-shrink: 0;
+}
 </style>

@@ -59,7 +59,7 @@ function exit() {
 
     <button class="exit" type="button" @click="exit">Sair</button>
   </aside>
-
+  
 </template>
 
 <style scoped>

@@ -1,5 +1,5 @@
 import { ref, readonly } from 'vue'
-import { companyService } from '../services/companyService'
+import { companyApi } from '../services/api'
 import type { CompanyDTO } from '../models/CompanyDTO'
 
 export function useCompanies() {
@@ -11,14 +11,15 @@ export function useCompanies() {
     try {
       loading.value = true
       error.value = null
-      companies.value = await companyService.getAllCompanies()
+      companies.value = await companyApi.getAll()
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erro ao carregar empresas'
-      console.error('Erro ao buscar empresas:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to load companies'
+      console.error('[useCompanies] Error fetching companies:', err)
     } finally {
       loading.value = false
     }
   }
+  
   return {
     companies: readonly(companies),
     loading: readonly(loading),

@@ -7,21 +7,14 @@ import MapRenderer from '@/components/MapRenderer.vue';
   --accent-gold: #c9a352;
   --frame: #2c2c2c;
 }
-  .screen {
-  min-height: 100dvh;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 1.25rem;
-  padding: 1rem 1.25rem;
-  }
-  
+
   /* os valores podem ser ajustados livremente */
   .map-renderer-style {
     position: fixed;
     bottom: 5%;
     right: 2.5%;
-    width: 77%;
-    height: 81%;
+    width: 75%;
+    height: 80%;
     /* border: 1px solid red; */
   }
 

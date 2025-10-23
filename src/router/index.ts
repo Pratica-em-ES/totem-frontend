@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LandingView from '../views/LandingView.vue'
-import ExampleView from '../views/ExampleView.vue'
+import RoutesView from '../views/RoutesView.vue'
 import MapVisualiser from '../views/MapVisualiser.vue'
 import CompaniesView from '../views/CompaniesView.vue'
 import CompanyDetailsView from '../components/CompanyDetailsView.vue'
@@ -22,7 +22,7 @@ const router = createRouter({
     {
       path: '/rotas',
       name: 'rotas',
-      component: ExampleView,
+      component: RoutesView,
     },
     {
       path: '/map',

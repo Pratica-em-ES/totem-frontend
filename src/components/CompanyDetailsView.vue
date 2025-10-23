@@ -1,53 +1,45 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { companyService } from '@/services/companyService'
+import { useCompaniesCache } from '@/composables/useCompaniesCache'
+import { useImagesCache } from '@/composables/useImagesCache'
+import { useCurrentLocation } from '@/composables/useCurrentLocation'
 import type { CompanyDTO } from '@/models/CompanyDTO'
 
 const route = useRoute()
 const router = useRouter()
 const company = ref<CompanyDTO | null>(null)
 const loading = ref(true)
-const imagePath = ref<string | null>(null)
-const isLoadingImage = ref<boolean>(true)
-const hasImageError = ref<boolean>(false)
+const imageError = ref(false)
 
-const fullImageUrl = computed(() => {
-  if (imagePath.value) {
-    return imagePath.value.startsWith('/') ? imagePath.value : `/${imagePath.value}`
-  }
-  return null
+const { getImage } = useImagesCache()
+const { companies, fetchCompanies } = useCompaniesCache()
+const { currentLocation } = useCurrentLocation()
+
+const imageSrc = computed(() => {
+  if (!company.value?.imagePath) return null
+  const cached = getImage(company.value.imagePath)
+  return cached || company.value.imagePath
 })
 
 onMounted(async () => {
-  const companyId = route.params.id as string
+  const companyId = Number(route.params.id)
 
   try {
-    company.value = await companyService.getCompanyById(companyId)
-    loading.value = false
+    loading.value = true
 
-    // Buscar imagem da empresa se os dados foram carregados com sucesso
-    if (company.value && companyId) {
-      try {
-        isLoadingImage.value = true
-        hasImageError.value = false
+    // Ensure companies are loaded
+    await fetchCompanies()
 
-        const numericId = Number.parseInt(companyId, 10)
+    // Find company in cache
+    company.value = companies.value.find(c => c.id === companyId) || null
 
-        if (Number.isNaN(numericId)) {
-          throw new TypeError('ID da empresa inválido para buscar a imagem.')
-        }
-
-        imagePath.value = await companyService.getCompanyImagePath(numericId)
-      } catch (error) {
-        console.error(`Falha ao buscar caminho da imagem para empresa ${companyId}:`, error)
-        hasImageError.value = true
-      } finally {
-        isLoadingImage.value = false
-      }
+    if (!company.value) {
+      console.error(`[CompanyDetailsView] Company with id ${companyId} not found`)
     }
   } catch (error) {
-    console.error('Erro ao carregar empresa:', error)
+    console.error('[CompanyDetailsView] Erro ao carregar empresa:', error)
+  } finally {
     loading.value = false
   }
 })
@@ -57,10 +49,16 @@ const goBack = () => {
 }
 
 const goToMap = () => {
-  if (company.value) {
+  if (company.value && company.value.building?.node?.id) {
+    const fromNodeId = currentLocation.nodeId
+    const toNodeId = company.value.building.node.id
+
     router.push({
       path: '/rotas',
-      query: { destinoId: company.value.id, destinoNome: company.value.name }
+      query: {
+        from: fromNodeId,
+        to: toNodeId
+      }
     })
   } else {
     router.push('/rotas')
@@ -97,7 +95,7 @@ const goToMap = () => {
               </div>
               <div class="company-info">
                 <div class="info-item">
-                  <strong>Localização:</strong> Prédio {{ company.building }}<template v-if="company.floor">, {{ company.floor }}º andar</template>
+                  <strong>Localização:</strong> Prédio {{ company.building.name }}
                 </div>
 
                 <div class="info-item">
@@ -105,8 +103,13 @@ const goToMap = () => {
                   <span class="description-text">{{ company.description }}</span>
                 </div>
 
-                <div class="info-item" v-if="company.category">
-                  <strong>Categoria:</strong> {{ company.category }}
+                <div class="info-item" v-if="company.categories?.length">
+                  <strong>{{ company.categories.length > 1 ? 'Categorias' : 'Categoria' }}:</strong>
+                  <div class="services-list">
+                    <span v-for="category in company.categories" :key="category.id" class="service-tag">
+                      {{ category.name }}
+                    </span>
+                  </div>
                 </div>
 
                 <div class="route-button-container">
@@ -117,33 +120,16 @@ const goToMap = () => {
                     </svg>
                   </button>
                 </div>
-
-                <div class="info-item" v-if="company.services?.length">
-                  <strong>Serviços:</strong>
-                  <div class="services-list">
-                    <span v-for="service in company.services" :key="service" class="service-tag">
-                      {{ service }}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="info-item" v-if="company.fullDescription">
-                  <strong>Descrição Completa:</strong> {{ company.fullDescription }}
-                </div>
               </div>
             </div>
             <div class="company-logo">
               <div class="placeholder-img">
-                <div v-if="isLoadingImage" class="img-content loading">
-                  <span>Carregando...</span>
-                </div>
-
                 <img
-                  v-else-if="fullImageUrl && !hasImageError"
-                  :src="fullImageUrl"
+                  v-if="imageSrc && !imageError"
+                  :src="imageSrc"
                   :alt="`Logo da ${company.name}`"
                   class="img-content"
-                  @error="hasImageError = true"
+                  @error="imageError = true"
                 />
 
                 <div v-else class="img-content fallback">

@@ -16,10 +16,10 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "three": "^0.179.1",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1",
-    "three": "^0.179.1",
-    "troika-three-text": "^0.52.4"
+    "vue3-simple-typeahead": "^1.0.11"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",

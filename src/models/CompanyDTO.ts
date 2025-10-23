@@ -1,20 +1,31 @@
-export interface CompanyDTO {
-  id: string;
+export interface NodeDTO {
+  id: number;
   name: string;
-  category: string;
-  description: string;
-  building: string;
-  floor?: string;
-  logoUrl?: string | null;
-  fullDescription?: string;
-  services?: string[];
 }
 
-export function filterCompaniesByCategory(companies: CompanyDTO[], category: string): CompanyDTO[] {
-  if (!category || category === 'Todas') return companies
-  const normalized = category.trim().toLowerCase()
-  return companies.filter(company => {
-    const parts = company.category.split(',').map(p => p.trim().toLowerCase()).filter(Boolean)
-    return parts.includes(normalized)
-  })
+export interface BuildingWithNodeDTO {
+  id: number;
+  name: string;
+  modelPath: string;
+  node: NodeDTO;
+}
+
+export interface CategoryDTO {
+  id: number;
+  name: string;
+}
+
+export interface CompanyDTO {
+  id: number;
+  name: string;
+  description: string;
+  imagePath: string;
+  building: BuildingWithNodeDTO;
+  categories: CategoryDTO[];
+}
+
+export function filterCompaniesByCategory(companies: CompanyDTO[], categoryName: string): CompanyDTO[] {
+  return companies.filter(company =>
+    company.categories.some(cat => cat.name === categoryName)
+  );
 }

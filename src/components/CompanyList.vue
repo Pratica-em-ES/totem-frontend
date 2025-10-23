@@ -1,70 +1,78 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import CompanyCard from './CompanyCard.vue'
-import { companyService } from '../services/companyService'
+import { useCompaniesCache } from '@/composables/useCompaniesCache'
 import type { CompanyDTO } from '../models/CompanyDTO'
 
+const router = useRouter()
+
 export interface Company {
-  id: string
+  id: number
   name: string
   building: string
   description: string
-  category: string
+  imagePath: string
+  categories: string[]
 }
+
+// Usar o cache global de empresas
+const { companies: cachedCompanies, loading, error, fetchCompanies } = useCompaniesCache()
 
 const rawCompanies = ref<Company[]>([])
-const loading = ref(true)
-const error = ref<string | null>(null)
 
-const convertToCompany = (dto: CompanyDTO): Company => {
-  return {
-    id: dto.id,
-    name: dto.name,
-    building: dto.building,
-    description: dto.description,
-    category: dto.category
+const convertToCompany = (dto: CompanyDTO): Company | null => {
+  try {
+    return {
+      id: dto.id,
+      name: dto.name || 'Sem nome',
+      building: dto.building?.name || 'Sem prédio',
+      description: dto.description || '',
+      imagePath: dto.imagePath || '',
+      categories: dto.categories?.map(cat => cat.name) || []
+    }
+  } catch (err) {
+    console.error('Erro ao converter empresa:', dto, err)
+    return null
   }
 }
 
+// Sincronizar dados do cache com o estado local
+watch(cachedCompanies, (newCompanies) => {
+  rawCompanies.value = newCompanies
+    .map(convertToCompany)
+    .filter((c): c is Company => c !== null)
+}, { immediate: true })
+
+// Função para recarregar (forçar refresh)
 const loadCompanies = async () => {
   try {
-    loading.value = true
-    error.value = null
-    const companiesFromAPI = await companyService.getAllCompanies()
-    rawCompanies.value = companiesFromAPI.map(convertToCompany)
+    await fetchCompanies(true) // forceRefresh = true
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Erro ao carregar empresas'
-    console.error('Erro ao carregar empresas:', err)
-  } finally {
-    loading.value = false
+    console.error('Erro ao recarregar empresas:', err)
   }
 }
-
-onMounted(() => {
-  loadCompanies()
-})
 
 export interface SearchFilters {
   searchTerm: string
-  building: string
+  building?: string
+  category?: string
 }
 
 const currentFilters = ref<SearchFilters>({
   searchTerm: '',
   building: '',
+  category: 'Todas'
 })
-
-const props = defineProps<{ category?: string; searchQuery?: string }>()
 
 const companies = computed(() => {
   let filtered = rawCompanies.value
 
   // Search term filter
-  const effectiveSearch = currentFilters.value.searchTerm || props.searchQuery || ''
-  if (effectiveSearch) {
-    const term = effectiveSearch.trim().toLowerCase()
-    filtered = filtered.filter(c => 
-      c.name.toLowerCase().includes(term) || 
+  if (currentFilters.value.searchTerm) {
+    const term = currentFilters.value.searchTerm.trim().toLowerCase()
+    filtered = filtered.filter(c =>
+      c.name.toLowerCase().includes(term) ||
       c.description.toLowerCase().includes(term)
     )
   }
@@ -74,20 +82,22 @@ const companies = computed(() => {
     filtered = filtered.filter(c => c.building === currentFilters.value.building)
   }
 
-  const categoryFilter = props.category && props.category !== 'Todas' ? props.category.trim() : ''
-  if (categoryFilter) {
-    const normalizedFilter = categoryFilter.toLowerCase()
-    filtered = filtered.filter(c => {
-      const parts = c.category.split(',').map(p => p.trim().toLowerCase()).filter(Boolean)
-      return parts.includes(normalizedFilter)
-    })
+  // Category filter
+  if (currentFilters.value.category && currentFilters.value.category !== 'Todas') {
+    filtered = filtered.filter(c =>
+      c.categories.includes(currentFilters.value.category!)
+    )
   }
 
   return filtered
 })
 
-const handleFiltersChanged = (filters: SearchFilters) => {
-  currentFilters.value = filters
+const handleFiltersChanged = (filters: Partial<SearchFilters>) => {
+  currentFilters.value = { ...currentFilters.value, ...filters }
+}
+
+const handleCardClick = (companyId: number) => {
+  router.push(`/empresas/${companyId}`)
 }
 
 // Export for external integration
@@ -117,10 +127,12 @@ defineExpose({
       <CompanyCard
         v-for="c in companies"
         :key="c.id"
+        :id="c.id"
         :name="c.name"
         :building="c.building"
-        :id="c.id"
         :description="c.description"
+        :image-path="c.imagePath"
+        @click="handleCardClick"
       />
       
       <div v-if="companies.length === 0" class="no-results">

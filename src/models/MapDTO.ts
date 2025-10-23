@@ -1,7 +1,15 @@
-import type { StreetDTO } from "./StreetDTO";
-import type { BuildingDTO } from "./BuildingDTO";
+import type { EdgeDTO } from "./EdgeDTO";
+import type { NodeDTO } from "./NodeDTO";
+
+export interface MapBuildingDTO {
+  id: number;
+  name: string;
+  modelPath: string;
+  nodeId: number;
+}
 
 export interface MapDTO {
-  buildings: BuildingDTO[];
-  streets: StreetDTO[];
+  nodes: NodeDTO[];
+  edges: EdgeDTO[];
+  buildings: MapBuildingDTO[];
 }
