@@ -28,7 +28,7 @@ COPY --from=build /app/package*.json ./
 # Install dependencies including vite (needed for preview command)
 RUN npm ci --include=dev
 EXPOSE 8080
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "8080", "--allowed-hosts", "all"]
+CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "8080"]
 
 # Final stage selection based on NODE_ENV
 FROM ${NODE_ENV:-production} as final
