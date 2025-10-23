@@ -19,12 +19,10 @@ export default defineConfig({
   },
   server: {
     host: true,
-    strictPort: false,
-    allowedHosts: ['all']
+    strictPort: false
   },
   preview: {
     host: true,
-    strictPort: false,
-    allowedHosts: ['.run.app', '.googleusercontent.com', 'totem-frontend-1099316651461.southamerica-east1.run.app']
+    strictPort: false
   }
 })
