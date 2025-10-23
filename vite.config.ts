@@ -25,6 +25,6 @@ export default defineConfig({
   preview: {
     host: true,
     strictPort: false,
-    allowedHosts: ['all']
+    allowedHosts: ['.run.app', '.googleusercontent.com', 'totem-frontend-1099316651461.southamerica-east1.run.app']
   }
 })
