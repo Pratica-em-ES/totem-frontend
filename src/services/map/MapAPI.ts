@@ -53,7 +53,8 @@ export class MapAPI implements IMapAPI {
       highlightedNodeId: null,
       currentRoute: null,
       routeLines: [],
-      isCameraAnimating: false
+      isCameraAnimating: false,
+      initialCameraPosition: null
     }
 
     // Initialize managers
@@ -116,8 +117,9 @@ export class MapAPI implements IMapAPI {
 
     this.initialized = true
 
-    // Load map data
+    // Load map data and save initial camera position
     await this.loadMapData()
+    this.controlsManager.saveInitialPosition()
   }
 
   /**
@@ -573,6 +575,18 @@ export class MapAPI implements IMapAPI {
    */
   isInitialized(): boolean {
     return this.initialized
+  }
+
+  /**
+   * Reset the camera to the initial position
+   * @param animate Whether to animate the transition (default: true)
+   */
+  resetCamera(animate = true): void {
+    if (!this.initialized) {
+      console.warn('Mapa não inicializado')
+      return
+    }
+    this.controlsManager.resetToInitialPosition(animate)
   }
 
   /**

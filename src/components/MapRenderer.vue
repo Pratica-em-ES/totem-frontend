@@ -20,6 +20,10 @@ onMounted(async () => {
   // Expose mapAPI globally for LocationSearch
   // @ts-ignore
   window.mapAPI = mapAPI
+  
+  // Dispara um evento global quando o mapa estiver pronto
+  const event = new Event('map-ready')
+  window.dispatchEvent(event)
 
   console.log('[MapRenderer] MapAPI initialized and exposed globally')
 })
