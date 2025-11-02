@@ -34,6 +34,8 @@ export class RendererManager {
     this.setupPostProcessing()
     this.startRenderLoop()
     this.setupResizeHandler()
+    // Perform an initial resize to ensure camera/composer match the container
+    this.resizeToContainer()
   }
 
   /**
@@ -75,8 +77,10 @@ export class RendererManager {
     this.composer.addPass(renderPass)
 
     // Outline pass for highlighting
+    const width = this.state.container?.clientWidth ?? this.state.renderer.domElement.width
+    const height = this.state.container?.clientHeight ?? this.state.renderer.domElement.height
     this.outlinePass = new OutlinePass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      new THREE.Vector2(width, height),
       this.state.scene,
       this.state.camera
     )
@@ -193,6 +197,27 @@ export class RendererManager {
     }
 
     window.addEventListener('resize', handleResize)
+  }
+
+  /**
+   * Resize camera, renderer, and postprocessing to match the container
+   */
+  private resizeToContainer(): void {
+    if (!this.state.container || !this.state.renderer || !this.state.camera) return
+    const BASE_FOV = 10
+    const REFERENCE_ASPECT = 16 / 9
+    const width = this.state.container.clientWidth
+    const height = this.state.container.clientHeight
+    const currentAspect = width / height
+
+    const fovAdjustment = currentAspect / REFERENCE_ASPECT
+    this.state.camera.fov = BASE_FOV * (1 / Math.sqrt(fovAdjustment))
+    this.state.camera.aspect = currentAspect
+    this.state.camera.updateProjectionMatrix()
+
+    this.state.renderer.setSize(width, height)
+    if (this.composer) this.composer.setSize(width, height)
+    if (this.outlinePass) this.outlinePass.resolution.set(width, height)
   }
 
   /**

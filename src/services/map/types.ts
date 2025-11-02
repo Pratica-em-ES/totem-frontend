@@ -28,6 +28,7 @@ export interface IMapAPI {
   
   // Camera Control
   resetCamera(animate?: boolean): void
+  setInitialCamera(position: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }): void
 
   // Click Handling
   handleClick(event: MouseEvent): void
@@ -69,6 +70,10 @@ export interface MapState {
     position: THREE.Vector3;
     target: THREE.Vector3;
   } | null;
+
+  // Sync state
+  instanceId?: string;
+  isApplyingSync?: boolean;
 }
 
 /**

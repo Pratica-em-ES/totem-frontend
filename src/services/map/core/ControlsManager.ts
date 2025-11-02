@@ -80,9 +80,9 @@ export class ControlsManager {
       return;
     }
     
-    // Fixed initial camera position and target
-    const initialPosition = new THREE.Vector3(-250, 300, 200);
-    const initialTarget = new THREE.Vector3(0, 0, 0);
+    // Use provided initial camera if available; otherwise fall back to defaults
+    const initialPosition = this.state.initialCameraPosition?.position ?? new THREE.Vector3(-250, 300, 200);
+    const initialTarget = this.state.initialCameraPosition?.target ?? new THREE.Vector3(0, 0, 0);
     
     this.state.initialCameraPosition = {
       position: initialPosition,
