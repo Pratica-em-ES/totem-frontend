@@ -9,6 +9,10 @@ export class ControlsManager {
   private state: MapState
   private controls: OrbitControls | null = null
 
+  // Static variables to store camera positions across instances
+  private static originalPosition: { position: THREE.Vector3; target: THREE.Vector3 } | null = null
+  private static currentPosition: { position: THREE.Vector3; target: THREE.Vector3 } | null = null
+
   constructor(state: MapState) {
     this.state = state
   }
@@ -27,6 +31,16 @@ export class ControlsManager {
     )
 
     this.configure(config)
+
+    // Add event listener to track camera position changes
+    this.controls.addEventListener('change', () => {
+      if (this.state.camera && this.controls) {
+        ControlsManager.currentPosition = {
+          position: this.state.camera.position.clone(),
+          target: this.controls.target.clone()
+        }
+      }
+    })
   }
 
   /**
@@ -79,24 +93,28 @@ export class ControlsManager {
       console.warn('Camera or controls not initialized when saving initial position');
       return;
     }
-    
-    // Use provided initial camera if available; otherwise fall back to defaults
-    const initialPosition = this.state.initialCameraPosition?.position ?? new THREE.Vector3(-250, 300, 200);
-    const initialTarget = this.state.initialCameraPosition?.target ?? new THREE.Vector3(0, 0, 0);
-    
-    this.state.initialCameraPosition = {
-      position: initialPosition,
-      target: initialTarget
-    };
-    
-    console.log('Initial camera position saved:', {
-      position: initialPosition.toArray(),
-      target: initialTarget.toArray()
-    });
-    
-    // Set the initial position immediately
-    this.state.camera.position.copy(initialPosition);
-    this.controls.target.copy(initialTarget);
+
+    // Set original position only if it hasn't been set before (first instance)
+    if (!ControlsManager.originalPosition) {
+      const initialPosition = this.state.initialCameraPosition?.position ?? new THREE.Vector3(-250, 300, 200);
+      const initialTarget = this.state.initialCameraPosition?.target ?? new THREE.Vector3(0, 0, 0);
+
+      ControlsManager.originalPosition = {
+        position: initialPosition.clone(),
+        target: initialTarget.clone()
+      };
+
+      ControlsManager.currentPosition = {
+        position: initialPosition.clone(),
+        target: initialTarget.clone()
+      };
+    }
+
+    // Use current position if available (subsequent instances)
+    const positionToUse = ControlsManager.currentPosition || ControlsManager.originalPosition;
+
+    this.state.camera.position.copy(positionToUse!.position);
+    this.controls.target.copy(positionToUse!.target);
     this.controls.update();
   }
 
@@ -104,38 +122,33 @@ export class ControlsManager {
    * Reset the camera to the initial position and target
    */
   resetToInitialPosition(animate = true) {
-    if (!this.state.initialCameraPosition || !this.controls || !this.state.camera) {
-      console.warn('Cannot reset camera: missing initial position, controls, or camera');
+    if (!ControlsManager.originalPosition || !this.controls || !this.state.camera) {
+      console.warn('Cannot reset camera: missing original position, controls, or camera');
       return;
     }
 
-    const { position, target } = this.state.initialCameraPosition;
-    
-    console.log('Resetting camera to:', {
-      position: position.toArray(),
-      target: target.toArray()
-    });
-    
+    const { position, target } = ControlsManager.originalPosition;
+
     if (animate) {
       // Smooth animation to initial position
       const duration = 1000; // 1 second
       const startTime = Date.now();
       const startPosition = this.state.camera.position.clone();
       const startTarget = this.controls.target.clone();
-      
+
       const animateStep = () => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
+
         // Ease in-out function for smooth animation
-        const t = progress < 0.5 
-          ? 2 * progress * progress 
+        const t = progress < 0.5
+          ? 2 * progress * progress
           : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-        
+
         // Interpolate position and target
         this.controls!.target.lerpVectors(startTarget, target, t);
         this.state.camera!.position.lerpVectors(startPosition, position, t);
-        
+
         if (progress < 1) {
           requestAnimationFrame(animateStep);
         } else {
@@ -143,15 +156,27 @@ export class ControlsManager {
           this.controls!.target.copy(target);
           this.state.camera!.position.copy(position);
           this.controls!.update();
+
+          // Update current position after reset
+          ControlsManager.currentPosition = {
+            position: position.clone(),
+            target: target.clone()
+          };
         }
       };
-      
+
       animateStep();
     } else {
       // Instant transition
       this.controls.target.copy(target);
       this.state.camera.position.copy(position);
       this.controls.update();
+
+      // Update current position after reset
+      ControlsManager.currentPosition = {
+        position: position.clone(),
+        target: target.clone()
+      };
     }
   }
 
