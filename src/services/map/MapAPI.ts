@@ -13,6 +13,7 @@ import { CurrentLocationMarker } from './features/CurrentLocationMarker'
 import { MapDataLoader } from './utils/MapDataLoader'
 import { RaycastHandler } from './utils/RaycastHandler'
 import { featureFlags } from '@/config/featureFlags'
+import { emitCameraSet, onCameraSet, getLastCamera } from './core/SyncBus'
 
 /**
  * Main Map API - Clean interface for all map operations
@@ -53,7 +54,8 @@ export class MapAPI implements IMapAPI {
       highlightedNodeId: null,
       currentRoute: null,
       routeLines: [],
-      isCameraAnimating: false
+      isCameraAnimating: false,
+      initialCameraPosition: null
     }
 
     // Initialize managers
@@ -69,6 +71,19 @@ export class MapAPI implements IMapAPI {
     this.currentLocationMarker = new CurrentLocationMarker(this.state)
     this.mapDataLoader = new MapDataLoader()
     this.raycastHandler = new RaycastHandler(this.state)
+
+    // Sync setup
+    this.state.instanceId = Math.random().toString(36).slice(2)
+    onCameraSet(({ position, target, sourceId }) => {
+      if (sourceId === this.state.instanceId) return
+      const controls = this.controlsManager.getControls()
+      if (!this.state.camera || !controls) return
+      this.state.isApplyingSync = true
+      this.state.camera.position.set(position.x, position.y, position.z)
+      controls.target.set(target.x, target.y, target.z)
+      controls.update()
+      this.state.isApplyingSync = false
+    })
   }
 
   /**
@@ -100,6 +115,32 @@ export class MapAPI implements IMapAPI {
       maxPolarAngle: Math.PI / 2 - 0.1
     })
 
+    const controls = this.controlsManager.getControls()
+    // Read last known camera state once per mount
+    const last = getLastCamera()
+    // If there is a last known camera from another instance, adopt it immediately
+    if (last && this.state.camera && controls) {
+      this.state.isApplyingSync = true
+      this.state.initialCameraPosition = {
+        position: new THREE.Vector3(last.position.x, last.position.y, last.position.z),
+        target: new THREE.Vector3(last.target.x, last.target.y, last.target.z)
+      }
+      this.state.camera.position.set(last.position.x, last.position.y, last.position.z)
+      controls.target.set(last.target.x, last.target.y, last.target.z)
+      controls.update()
+      this.state.isApplyingSync = false
+    }
+
+    if (controls) {
+      controls.addEventListener('change', () => {
+        if (this.state.isApplyingSync) return
+        if (!this.state.camera || !controls) return
+        const p = this.state.camera.position
+        const t = controls.target
+        emitCameraSet({ x: p.x, y: p.y, z: p.z }, { x: t.x, y: t.y, z: t.z }, this.state.instanceId!)
+      })
+    }
+
     // Connect controls manager to renderer for updates in render loop
     this.rendererManager.setControlsManager(this.controlsManager)
 
@@ -116,8 +157,18 @@ export class MapAPI implements IMapAPI {
 
     this.initialized = true
 
-    // Load map data
+    // Load map data and save initial camera position
     await this.loadMapData()
+    this.controlsManager.saveInitialPosition()
+    // Emit initial camera state only if there is no previously known camera
+    if (!last) {
+      const controlsForEmit = this.controlsManager.getControls()
+      if (this.state.camera && controlsForEmit) {
+        const p = this.state.camera.position
+        const t = controlsForEmit.target
+        emitCameraSet({ x: p.x, y: p.y, z: p.z }, { x: t.x, y: t.y, z: t.z }, this.state.instanceId!)
+      }
+    }
   }
 
   /**
@@ -573,6 +624,39 @@ export class MapAPI implements IMapAPI {
    */
   isInitialized(): boolean {
     return this.initialized
+  }
+
+  /**
+   * Reset the camera to the initial position
+   * @param animate Whether to animate the transition (default: true)
+   */
+  resetCamera(animate = true): void {
+    if (!this.initialized) {
+      console.warn('Mapa não inicializado')
+      return
+    }
+    this.controlsManager.resetToInitialPosition(animate)
+  }
+
+  /**
+   * Define the initial camera position and target. Should be called before mount.
+   */
+  setInitialCamera(
+    position: { x: number; y: number; z: number },
+    target: { x: number; y: number; z: number }
+  ): void {
+    this.state.initialCameraPosition = {
+      position: new THREE.Vector3(position.x, position.y, position.z),
+      target: new THREE.Vector3(target.x, target.y, target.z)
+    }
+
+    // If already initialized and we have camera/controls, apply immediately
+    const controls = this.controlsManager.getControls()
+    if (this.state.camera && controls) {
+      this.state.camera.position.set(position.x, position.y, position.z)
+      controls.target.set(target.x, target.y, target.z)
+      controls.update()
+    }
   }
 
   /**

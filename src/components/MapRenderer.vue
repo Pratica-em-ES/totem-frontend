@@ -3,12 +3,23 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { MapAPI } from '@/services/map/MapAPI'
 import { useCurrentLocation } from '@/composables/useCurrentLocation'
 
+const props = defineProps<{
+  initialCamera?: {
+    position: { x: number; y: number; z: number }
+    target: { x: number; y: number; z: number }
+  }
+}>()
+
 const container = ref<HTMLDivElement | null>(null)
 const mapAPI = new MapAPI()
 const { currentLocation } = useCurrentLocation()
 
 onMounted(async () => {
   if (!container.value) return
+
+  if (props.initialCamera) {
+    mapAPI.setInitialCamera(props.initialCamera.position, props.initialCamera.target)
+  }
 
   // Set current location BEFORE mounting (so buildings load with pin)
   mapAPI.showCurrentLocationMarker(currentLocation.nodeId)
@@ -20,6 +31,10 @@ onMounted(async () => {
   // Expose mapAPI globally for LocationSearch
   // @ts-ignore
   window.mapAPI = mapAPI
+  
+  // Dispara um evento global quando o mapa estiver pronto
+  const event = new Event('map-ready')
+  window.dispatchEvent(event)
 
   console.log('[MapRenderer] MapAPI initialized and exposed globally')
 })

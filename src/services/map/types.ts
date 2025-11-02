@@ -25,6 +25,10 @@ export interface IMapAPI {
   getBuildingByName(name: string): MapBuildingDTO | null
   getBuildingById(id: number): MapBuildingDTO | null
   getAllBuildings(): MapBuildingDTO[]
+  
+  // Camera Control
+  resetCamera(animate?: boolean): void
+  setInitialCamera(position: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }): void
 
   // Click Handling
   handleClick(event: MouseEvent): void
@@ -60,6 +64,16 @@ export interface MapState {
 
   // Animation state
   isCameraAnimating: boolean
+  
+  // Camera state
+  initialCameraPosition: {
+    position: THREE.Vector3;
+    target: THREE.Vector3;
+  } | null;
+
+  // Sync state
+  instanceId?: string;
+  isApplyingSync?: boolean;
 }
 
 /**
