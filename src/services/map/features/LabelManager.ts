@@ -37,8 +37,11 @@ export class LabelManager {
   private buildingLabels: THREE.Sprite[] = []
   private nodeLabels: THREE.Sprite[] = []
 
+  private buildingToLabel: Map<number | undefined, THREE.Sprite>
+
   constructor(state: MapState) {
     this.state = state
+    this.buildingToLabel = new Map()
   }
 
   /**
@@ -186,11 +189,26 @@ export class LabelManager {
       const spriteWidth = spriteHeight * aspectRatio
       sprite.scale.set(spriteWidth, spriteHeight, 1)
       sprite.renderOrder = LabelManager.BUILDING_RENDER_ORDER
-
+      sprite.visible = false
+      
       this.state.scene.add(sprite)
       this.buildingLabels.push(sprite)
+      let key: number | undefined
+      model.traverse((child) => {
+        if (key === undefined && (child as any).isMesh) {
+          key = this.state.meshToBuildingIdMap.get(child as any)
+        }
+      })
+      this.buildingToLabel.set(key, sprite)
     } catch (err) {
       console.error('Failed to create building label:', err)
+    }
+  }
+
+  setBuildingLabelVisible(buildingId: number) {
+    let label = this.buildingToLabel.get(buildingId)
+    if (label) {
+      label.visible = true
     }
   }
 

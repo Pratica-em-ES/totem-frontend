@@ -37,6 +37,8 @@ export class MapAPI implements IMapAPI {
   private currentAnimationFrame: number | null = null
   private currentAnimationPromise: Promise<void> | null = null
 
+  private buildingClickTimeoutId: number | undefined = undefined
+
   constructor() {
     // Initialize state
     this.state = {
@@ -152,7 +154,19 @@ export class MapAPI implements IMapAPI {
 
     // Register building click callback
     this.raycastHandler.onBuildingClickCallback((buildingId) => {
-      this.highlightBuilding(buildingId)
+      if (this.state.highlightedBuildingId === buildingId) {
+        this.clearHighlight() // remover highlight se o predio clicado ja estiver realcado
+        this.labelManager.setBuildingLabelsVisible(false)
+        clearTimeout(this.buildingClickTimeoutId)
+        this.buildingClickTimeoutId = undefined
+      } else {
+        // predios ja realcados tem seu highlight removido automaticamente
+        this.labelManager.setBuildingLabelsVisible(false)
+        clearTimeout(this.buildingClickTimeoutId) // prevenir que a label atualmente em destaque seja removida antes da hora
+        this.highlightBuilding(buildingId) 
+        this.labelManager.setBuildingLabelVisible(buildingId)
+        this.buildingClickTimeoutId = setTimeout(() => { this.labelManager.setBuildingLabelsVisible(false) }, 10000) //10s
+      }
     })
 
     this.initialized = true

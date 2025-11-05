@@ -25,11 +25,11 @@ export const featureFlags: FeatureFlags = {
   enableCameraAnimation: true,
 
   // Label features
-  showBuildingLabels: true,
+  showBuildingLabels: false,
   showNodeLabels: false,
 
   // Highlight features
-  enableBuildingHighlight: false,
+  enableBuildingHighlight: true,
 
   // Development/Debug features
   showGraphNodes: false,
