@@ -12,14 +12,6 @@
         @keyup.enter="onSearch"
         aria-label="Pesquisar"
       />
-
-      <button class="search-btn" type="button" @click="onSearch" aria-label="Buscar">
-        <!-- minimal white magnifier SVG -->
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z" stroke="none" fill="white" opacity="0.95"/>
-          <path d="M21 21l-4.35-4.35" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
     </div>
   </div>
 </template>
