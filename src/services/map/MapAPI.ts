@@ -14,6 +14,7 @@ import { MapDataLoader } from './utils/MapDataLoader'
 import { RaycastHandler } from './utils/RaycastHandler'
 import { featureFlags } from '@/config/featureFlags'
 import { emitCameraSet, onCameraSet, getLastCamera } from './core/SyncBus'
+import { CompanyCacheCategoryManager, type ICategoryManager } from './features/CategoriesManager'
 
 /**
  * Main Map API - Clean interface for all map operations
@@ -32,6 +33,7 @@ export class MapAPI implements IMapAPI {
   private currentLocationMarker: CurrentLocationMarker
   private mapDataLoader: MapDataLoader
   private raycastHandler: RaycastHandler
+  private categoryManager: ICategoryManager
   private initialized = false
   private currentLocationNodeId: number | null = null
   private currentAnimationFrame: number | null = null
@@ -73,6 +75,7 @@ export class MapAPI implements IMapAPI {
     this.currentLocationMarker = new CurrentLocationMarker(this.state)
     this.mapDataLoader = new MapDataLoader()
     this.raycastHandler = new RaycastHandler(this.state)
+    this.categoryManager = new CompanyCacheCategoryManager(this.state)
 
     // Sync setup
     this.state.instanceId = Math.random().toString(36).slice(2)
@@ -183,6 +186,7 @@ export class MapAPI implements IMapAPI {
         emitCameraSet({ x: p.x, y: p.y, z: p.z }, { x: t.x, y: t.y, z: t.z }, this.state.instanceId!)
       }
     }
+    this.categoryManager.loadCategories()
   }
 
   /**
@@ -357,6 +361,17 @@ export class MapAPI implements IMapAPI {
    */
   highlightMultiple(buildingIds: Array<number | string>): void {
     this.buildingHighlighter.highlightMultiple(buildingIds)
+  }
+
+  /**
+   * Highlight buildings whose companies are part of category
+   */
+  highlightByCategory(category: string): void {
+    if (category == this.categoryManager.allCategory) {
+      this.clearHighlight()
+    } else {
+      this.highlightMultiple(this.categoryManager.getBuildingsByCategory(category));
+    }
   }
 
   /**

@@ -16,6 +16,7 @@ export interface IMapAPI {
   highlightBuilding(buildingId: number | string): void
   clearHighlight(): void
   highlightMultiple(buildingIds: Array<number | string>): void
+  highlightByCategory(category: string): void
 
   // Route Operations
   traceRoute(nodeIdList: number[]): void
