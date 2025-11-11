@@ -25,7 +25,7 @@ export class SceneManager {
    */
   private createScene(): void {
     this.state.scene = new THREE.Scene()
-    this.state.scene.background = new THREE.Color(0x808080) // Gray background (same as old)
+    this.state.scene.background = new THREE.Color(0x75b5ff) // Gray background (same as old)
   }
 
   /**
