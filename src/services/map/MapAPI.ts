@@ -166,7 +166,7 @@ export class MapAPI implements IMapAPI {
         // predios ja realcados tem seu highlight removido automaticamente
         this.labelManager.setBuildingLabelsVisible(false)
         clearTimeout(this.buildingClickTimeoutId) // prevenir que a label atualmente em destaque seja removida antes da hora
-        this.highlightBuilding(buildingId) 
+        this.highlightBuilding(buildingId)
         this.labelManager.setBuildingLabelVisible(buildingId)
         this.buildingClickTimeoutId = setTimeout(() => { this.labelManager.setBuildingLabelsVisible(false) }, 10000) //10s
       }
@@ -334,7 +334,7 @@ export class MapAPI implements IMapAPI {
       }
     }
   }
-  
+
   /**
    * Get the currently highlighted building
    */
