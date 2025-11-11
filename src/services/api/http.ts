@@ -3,7 +3,11 @@
  * Single Responsibility: Gerenciar requisições HTTP
  */
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
+
+if (!API_BASE_URL) {
+  throw new Error('VITE_BACKEND_URL environment variable is not defined')
+}
 
 export class HttpClient {
   private baseUrl: string

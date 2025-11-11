@@ -191,7 +191,7 @@ onMounted(async () => {
     console.log('[LocationSearch] Companies loaded:', companies.value.length)
 
     // Fetch map data for buildings
-    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
     const response = await fetch(`${API_BASE_URL}/map`)
     mapData.value = await response.json()
     console.log('[LocationSearch] Map loaded, buildings:', mapData.value.buildings.length)
