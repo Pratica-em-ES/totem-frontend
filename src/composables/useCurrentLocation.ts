@@ -18,9 +18,9 @@ export interface CurrentLocation {
  */
 const CURRENT_LOCATION: CurrentLocation = {
   id: 'totem-principal',
-  name: 'Totem - 95A',
+  name: 'Totem - 99A',
   type: 'totem',
-  nodeId: 48, // Graph node ID for route calculations
+  nodeId: 47, // Graph node ID for route calculations
   buildingId: null
 }
 
