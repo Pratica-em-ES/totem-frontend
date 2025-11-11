@@ -32,6 +32,12 @@ export interface IMapAPI {
 
   // Click Handling
   handleClick(event: MouseEvent): void
+
+  // Feature Flag Methods
+  setBuildingLabelsVisible(visible: boolean): void
+  setNodeLabelsVisible(visible: boolean): void
+  setGraphNodesVisible(visible: boolean): void
+  setGraphEdgesVisible(visible: boolean): void
 }
 
 /**
