@@ -16,16 +16,31 @@
   </div>
 </template>
 
-<script setup>
-import { ref, watch, onMounted } from "vue";
+<script setup lang="ts">
+import { ref, watch, onMounted, computed } from "vue";
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
+import { useCompaniesCache } from "@/composables/useCompaniesCache";
 
-const props = defineProps({
-  categoriesProp: { type: Array, default: () => ["Todas", "Instituição", "Serviço", "Outro"] }
-});
 const emit = defineEmits(["search"]);
 
-const categories = ref(props.categoriesProp);
+// Access shared companies cache
+const { companies } = useCompaniesCache();
+
+// Derive categories dynamically from cached companies
+const categories = computed(() => {
+  const set = new Set<string>();
+  companies.value.forEach(company => {
+    // Support both array of objects with name and array of strings (defensive)
+    if (Array.isArray(company.categories)) {
+      company.categories.forEach(cat => {
+        if (typeof cat === 'string') set.add(cat);
+        else if (cat && typeof cat.name === 'string') set.add(cat.name);
+      });
+    }
+  });
+  return ["Todas", ...Array.from(set).sort()];
+});
+
 const selectedCategory = ref("Todas");
 const searchQuery = ref("");
 
