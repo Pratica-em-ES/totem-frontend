@@ -20,7 +20,7 @@ import { CompanyCacheCategoryManager, type ICategoryManager } from './features/C
  * Main Map API - Clean interface for all map operations
  */
 export class MapAPI implements IMapAPI {
-  private static HIGHLIGHT_TIMEOUT: number = 10
+  private static HIGHLIGHT_TIMEOUT: number = 300000
   private state: MapState
   private sceneManager: SceneManager
   private rendererManager: RendererManager
