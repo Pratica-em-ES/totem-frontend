@@ -20,6 +20,7 @@ import { CompanyCacheCategoryManager, type ICategoryManager } from './features/C
  * Main Map API - Clean interface for all map operations
  */
 export class MapAPI implements IMapAPI {
+  private static HIGHLIGHT_TIMEOUT: number = 10
   private state: MapState
   private sceneManager: SceneManager
   private rendererManager: RendererManager
@@ -39,7 +40,7 @@ export class MapAPI implements IMapAPI {
   private currentAnimationFrame: number | null = null
   private currentAnimationPromise: Promise<void> | null = null
 
-  private buildingClickTimeoutId: number | undefined = undefined
+  private buildingHighlightTimeoutId: number | undefined = undefined
 
   constructor() {
     // Initialize state
@@ -161,13 +162,13 @@ export class MapAPI implements IMapAPI {
       // Não sei explicar por quê, 
       if (this.state.highlightedBuildingId?.length == 1 && this.state.highlightedBuildingId[0] == buildingId) {
         this.clearHighlight() // remover highlight se o predio clicado ja estiver realcado
-        clearTimeout(this.buildingClickTimeoutId)
-        this.buildingClickTimeoutId = undefined
+        clearTimeout(this.buildingHighlightTimeoutId)
+        this.buildingHighlightTimeoutId = undefined
       } else {
         this.clearHighlight()
-        clearTimeout(this.buildingClickTimeoutId) // prevenir que a label atualmente em destaque seja removida antes da hora
+        clearTimeout(this.buildingHighlightTimeoutId) // prevenir que a label atualmente em destaque seja removida antes da hora
         this.highlightBuilding(buildingId)
-        this.buildingClickTimeoutId = setTimeout(() => { this.labelManager.setBuildingLabelsVisible(false) }, 300000) //5min
+        this.buildingHighlightTimeoutId = setTimeout(() => this.labelManager.setBuildingLabelsVisible(false), MapAPI.HIGHLIGHT_TIMEOUT) //5min
       }
     })
 
