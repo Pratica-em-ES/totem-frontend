@@ -155,6 +155,11 @@ const processRouteParams = async () => {
 
   // @ts-ignore
   if (window.mapAPI && window.mapAPI.traceRouteByNodeIds) {
+    const fromBuildingId = window.mapAPI.getBuildingIdByNodeId(fromNodeId)
+    const toBuildingId = window.mapAPI.getBuildingIdByNodeId(toNodeId)
+    if (fromBuildingId && toBuildingId) {
+      window.mapAPI.highlightMultiple([fromBuildingId, toBuildingId])
+    }
     console.log('[LocationSearch] Tracing route on map:', fromNodeId, '->', toNodeId)
     // @ts-ignore
     await window.mapAPI.traceRouteByNodeIds(fromNodeId, toNodeId)

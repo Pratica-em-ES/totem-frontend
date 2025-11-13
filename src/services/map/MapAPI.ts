@@ -157,18 +157,17 @@ export class MapAPI implements IMapAPI {
 
     // Register building click callback
     this.raycastHandler.onBuildingClickCallback((buildingId) => {
-      if (this.state.highlightedBuildingId === buildingId) {
+      // TODO - CONSERTAR ISSO DEPOIS QUE HIGLIGHT DE MULTIPLOS PREDIOS FOR RESOLVIDO
+      // Não sei explicar por quê, 
+      if (this.state.highlightedBuildingId?.length == 1 && this.state.highlightedBuildingId[0] == buildingId) {
         this.clearHighlight() // remover highlight se o predio clicado ja estiver realcado
-        this.labelManager.setBuildingLabelsVisible(false)
         clearTimeout(this.buildingClickTimeoutId)
         this.buildingClickTimeoutId = undefined
       } else {
-        // predios ja realcados tem seu highlight removido automaticamente
-        this.labelManager.setBuildingLabelsVisible(false)
+        this.clearHighlight()
         clearTimeout(this.buildingClickTimeoutId) // prevenir que a label atualmente em destaque seja removida antes da hora
         this.highlightBuilding(buildingId)
-        this.labelManager.setBuildingLabelVisible(buildingId)
-        this.buildingClickTimeoutId = setTimeout(() => { this.labelManager.setBuildingLabelsVisible(false) }, 10000) //10s
+        this.buildingClickTimeoutId = setTimeout(() => { this.labelManager.setBuildingLabelsVisible(false) }, 300000) //5min
       }
     })
 
@@ -338,21 +337,24 @@ export class MapAPI implements IMapAPI {
   /**
    * Get the currently highlighted building
    */
-  getHighlightedBuilding(): MapBuildingDTO | null {
-    return this.buildingHighlighter.getHighlightedBuilding()
+  getHighlightedBuildings(): MapBuildingDTO[] | null {
+    return this.buildingHighlighter.getHighlightedBuildings()
   }
 
   /**
    * Highlight a building by ID or name
    */
   highlightBuilding(buildingId: number | string): void {
+    this.labelManager.setBuildingLabelsVisible(false) // clear labels
     this.buildingHighlighter.highlightBuilding(buildingId)
+    this.labelManager.setBuildingLabelVisible(Number(buildingId))
   }
 
   /**
    * Clear all highlights
    */
   clearHighlight(): void {
+    this.labelManager.setBuildingLabelsVisible(false)
     this.buildingHighlighter.clearHighlight()
   }
 
@@ -360,7 +362,11 @@ export class MapAPI implements IMapAPI {
    * Highlight multiple buildings
    */
   highlightMultiple(buildingIds: Array<number | string>): void {
+    this.labelManager.setBuildingLabelsVisible(false) // clear labels
     this.buildingHighlighter.highlightMultiple(buildingIds)
+    buildingIds.forEach((b) => {
+      this.labelManager.setBuildingLabelVisible(Number(b))
+    })
   }
 
   /**
@@ -368,6 +374,7 @@ export class MapAPI implements IMapAPI {
    */
   highlightByCategory(category: string): void {
     if (category == this.categoryManager.allCategory) {
+      // clearHighlight ou hightlightAll ?
       this.clearHighlight()
     } else {
       this.highlightMultiple(this.categoryManager.getBuildingsByCategory(category));
@@ -449,6 +456,11 @@ export class MapAPI implements IMapAPI {
   getBuildingById(id: number): MapBuildingDTO | null {
     if (!this.state.mapData) return null
     return this.state.mapData.buildings.find((b) => b.id === id) || null
+  }
+
+  getBuildingIdByNodeId(buildingId: number): number | null {
+    if (!this.state.mapData) return null
+    return this.state.mapData?.buildings.find((b) => b.nodeId === buildingId)?.id || null
   }
 
   /**
@@ -540,7 +552,7 @@ export class MapAPI implements IMapAPI {
     const upThreshold = 0.01 // Very small tolerance for up vector
     const isAtTargetPosition = camera.position.distanceTo(targetPosition) < positionThreshold
     const isUpright = camera.up.distanceTo(targetUp) < upThreshold
-
+    console.log(this.state.camera.rotation)
     if (isAtTargetPosition && isUpright) {
       console.log('[MapAPI] Camera already at target position, skipping animation')
 
@@ -590,6 +602,7 @@ export class MapAPI implements IMapAPI {
 
     // Wrap animation in a promise
     this.currentAnimationPromise = new Promise<void>((resolve) => {
+      console.log(this.state.camera?.rotation)
       const animate = () => {
         const elapsed = Date.now() - startTime
         const rawProgress = Math.min(elapsed / duration, 1)
@@ -635,6 +648,7 @@ export class MapAPI implements IMapAPI {
           console.log('[MapAPI] Final position:', camera.position)
           console.log('[MapAPI] Final up vector:', camera.up)
           console.log('[MapAPI] Focused on:', centerTarget)
+          console.log(this.state.camera?.rotation)
 
           // Resolve promise
           resolve()
