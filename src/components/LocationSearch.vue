@@ -26,6 +26,7 @@ const isLoadingRoute = ref(false)
 const mapData = ref<any>(null)
 const showDropdown = ref(false)
 const highlightedIndex = ref(0)
+const previousSearchQuery = ref('')
 
 // Build searchable items from companies cache and map data
 const searchableItems = computed<SearchableItem[]>(() => {
@@ -97,13 +98,20 @@ const filteredItems = computed<SearchableItem[]>(() => {
   return matches.slice(0, 5) // Top 5 matches
 })
 
-// Watch search query to show/hide dropdown
-watch(searchQuery, (newValue) => {
+// Watch search query to show/hide dropdown and detect manual clear
+watch(searchQuery, (newValue, oldValue) => {
   console.log('[LocationSearch] Watch triggered, newValue:', newValue)
   console.log('[LocationSearch] filteredItems.value.length:', filteredItems.value.length)
   showDropdown.value = newValue.length > 0 && filteredItems.value.length > 0
   console.log('[LocationSearch] showDropdown set to:', showDropdown.value)
   highlightedIndex.value = 0
+
+  if (oldValue && oldValue.length > 0 && newValue.length === 0) {
+    console.log('[LocationSearch] User manually cleared input, resetting camera')
+    resetCameraAndClearRoute()
+  }
+
+  previousSearchQuery.value = oldValue
 })
 
 // Extract route processing logic to be reused by multiple watchers
@@ -295,6 +303,51 @@ const waitForMapAPI = (): Promise<void> => {
   })
 }
 
+// Clear input and reset camera
+const clearInput = async () => {
+  console.log('[LocationSearch] Clearing input and resetting camera')
+  searchQuery.value = ''
+  selectedItem.value = null
+  showDropdown.value = false
+
+  await resetCameraAndClearRoute()
+}
+
+// Reset camera and clear route on map
+const resetCameraAndClearRoute = async () => {
+  console.log('[LocationSearch] Resetting camera and clearing route')
+
+  // Wait for mapAPI to be available
+  await waitForMapAPI()
+
+  // @ts-ignore
+  if (window.mapAPI) {
+    // Clear route from map
+    // @ts-ignore
+    if (window.mapAPI.clearRoute) {
+      // @ts-ignore
+      window.mapAPI.clearRoute()
+      console.log('[LocationSearch] Route cleared from map')
+    }
+
+    // Reset camera
+    // @ts-ignore
+    if (window.mapAPI.resetCamera) {
+      // @ts-ignore
+      window.mapAPI.resetCamera()
+      console.log('[LocationSearch] Camera reset')
+    }
+  } else {
+    console.warn('[LocationSearch] mapAPI not available')
+  }
+
+  // Clear URL query params
+  router.replace({
+    path: '/rotas',
+    query: {}
+  })
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
@@ -353,6 +406,28 @@ onMounted(() => {
         @keydown="handleKeyDown"
         @focus="handleFocus"
       />
+
+      <button
+        v-if="searchQuery.length > 0"
+        @click="clearInput"
+        class="clear-button"
+        aria-label="Limpar destino"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
 
       <!-- Dropdown with suggestions -->
       <div v-if="showDropdown" class="dropdown">
@@ -433,6 +508,28 @@ input::placeholder {
 
 .input-search {
   cursor: text;
+}
+
+.clear-button {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  color: #5f6368;
+  flex-shrink: 0;
+}
+
+.clear-button:hover {
+  background-color: rgba(95, 99, 104, 0.1);
+}
+
+.clear-button:active {
+  background-color: rgba(95, 99, 104, 0.2);
 }
 
 .loading-indicator {
