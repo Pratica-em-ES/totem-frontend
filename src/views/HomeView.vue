@@ -3,6 +3,7 @@ import SideMenu from '@/components/SideMenu.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import MapRenderer from '@/components/MapRenderer.vue'
 import ResetCameraButton from '@/components/ResetCameraButton.vue'
+import RouteInfoPopup from '@/components/RouteInfoPopup.vue'
 
 defineOptions({
   name: 'HomeView'
@@ -22,6 +23,7 @@ function onSearch(payload: { query: string; category: string }) {
       <div class="map-container">
         <MapRenderer />
         <ResetCameraButton />
+        <RouteInfoPopup />
       </div>
       <div class="bottom-spacer"></div>
     </section>

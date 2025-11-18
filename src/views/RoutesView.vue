@@ -3,6 +3,7 @@ import SideMenu from '@/components/SideMenu.vue'
 import MapRenderer from '@/components/MapRenderer.vue'
 import LocationSearch from '@/components/LocationSearch.vue'
 import ResetCameraButton from '@/components/ResetCameraButton.vue'
+import RouteInfoPopup from '@/components/RouteInfoPopup.vue'
 
 defineOptions({
   name: 'RoutesView'
@@ -17,6 +18,7 @@ defineOptions({
       <div class="map-container">
         <MapRenderer />
         <ResetCameraButton />
+        <RouteInfoPopup />
       </div>
       <div class="bottom-spacer"></div>
     </section>
