@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MapBuildingDTO } from '@/models/MapDTO';
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -78,6 +79,10 @@ onBeforeUnmount(() => {
     clearInterval(checkInterval);
     checkInterval = null;
   }
+  // HACK!!!! Quando highlight multiplo eh usado, trocar a view deixa a tela do mapa vazia
+  let highlighted = mapAPI.value.getHighlightedBuildings() as MapBuildingDTO[] | null;
+  mapAPI.value.higlightMultiple(highlighted?.map((b) => b.id));
+  // end HACK!!!!
 });
 
 const resetCamera = () => {
