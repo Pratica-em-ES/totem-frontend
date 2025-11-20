@@ -60,6 +60,10 @@ export class BuildingHighlighter {
     // if (buildingIds.length > 0) {
     //   this.highlightBuilding(buildingIds[0])
     // }
+    if (!featureFlags.enableBuildingHighlight) {
+      console.log('[BuildingHighlighter] Highlighting disabled by feature flag')
+      return
+    }
     this.clearHighlight()
     buildingIds.forEach((id) => {
             // Check if highlighting is enabled
