@@ -124,9 +124,14 @@ watch(() => selectedCompany.value, async () => {
     </button>
 
     <div v-if="popupData.isSameLocation" class="popup-content">
-      <h3 class="popup-title">Você já está no {{ popupData.buildingName }}!</h3>
+      <h3 class="popup-title">{{ popupData.title }}</h3>
 
       <div class="popup-info">
+        <div class="info-item">
+          <span class="info-label">Prédio:</span>
+          <span class="info-value">{{ popupData.buildingName }}</span>
+        </div>
+
         <div v-if="popupData.block" class="info-item">
           <span class="info-label">Bloco:</span>
           <span class="info-value">{{ popupData.block }}</span>
@@ -140,6 +145,10 @@ watch(() => selectedCompany.value, async () => {
         <div v-if="popupData.floor" class="info-item">
           <span class="info-label">Andar:</span>
           <span class="info-value">{{ popupData.floor }}</span>
+        </div>
+
+        <div class="same-location-message">
+          📍 Você já está no {{ popupData.buildingName }}! 
         </div>
       </div>
     </div>
@@ -245,7 +254,7 @@ watch(() => selectedCompany.value, async () => {
 .popup-info {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0 rem;
   margin-top: 0.5rem;
 }
 
@@ -269,5 +278,14 @@ watch(() => selectedCompany.value, async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.same-location-message {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.85rem;
+  opacity: 0.9;
+  font-weight: 500;
 }
 </style>
