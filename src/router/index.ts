@@ -42,4 +42,13 @@ const router = createRouter({
   ],
 })
 
+// Dispatch a global event on each route change to allow components to react
+router.afterEach((to, from) => {
+  try {
+    window.dispatchEvent(new CustomEvent('app-route-changed', { detail: { from: from && from.name ? from.name : null, to: to && to.name ? to.name : null } }));
+  } catch (e) {
+    // ignore (server-side rendering or non-browser env)
+  }
+});
+
 export default router
