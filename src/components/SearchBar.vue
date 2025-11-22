@@ -285,8 +285,9 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 function selectItem(item: SearchableItem) {
-  isSelecting.value = true; // Set flag to prevent watcher from re-opening dropdown
-  searchQuery.value = item.displayName;
+  isSelecting.value = true;
+  const emoji = item.type === 'company' ? '🏪' : '🏢';
+  searchQuery.value = `${emoji} ${item.displayName}`;
   showDropdown.value = false;
 
   // Emit selected item details along with query/category
