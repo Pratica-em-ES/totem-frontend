@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { useRoute } from 'vue-router';
 import { MapAPI } from '@/services/map/MapAPI'
 import { useCurrentLocation } from '@/composables/useCurrentLocation'
 
@@ -11,8 +12,15 @@ const props = defineProps<{
 }>()
 
 const container = ref<HTMLDivElement | null>(null)
+const route = useRoute()
 const mapAPI = new MapAPI()
 const { currentLocation } = useCurrentLocation()
+
+// Initialize global map instances registry if needed
+if (!window.mapAPIInstances) {
+  // @ts-ignore
+  window.mapAPIInstances = new Map()
+}
 
 onMounted(async () => {
   if (!container.value) return
@@ -28,8 +36,10 @@ onMounted(async () => {
   // Mount and initialize map
   await mapAPI.mount(container.value)
 
-  // Expose mapAPI globally for LocationSearch
-  // @ts-ignore
+  // Store this mapAPI instance in the registry using route name as key
+  window.mapAPIInstances.set(route.name, mapAPI)
+  
+  // Also expose as current active mapAPI
   window.mapAPI = mapAPI
   
   // Dispara um evento global quando o mapa estiver pronto
@@ -45,6 +55,8 @@ onBeforeUnmount(() => {
   // Clean up global reference
   // @ts-ignore
   window.mapAPI = undefined
+  window.mapAPIInstances.get(route.name)?.unmount()
+  window.mapAPIInstances.set(route.name, undefined)
 })
 </script>
 

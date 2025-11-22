@@ -228,10 +228,15 @@ watch(searchQuery, (newValue) => {
   // Also emit search for real-time filtering if parent uses it (existing behavior)
   const emitted = normalizeQuery(newValue);
   emit('search', { query: emitted, category: selectedCategory.value });
+  const buildingId = searchableItems.value.find(c => c.displayName == emitted)?.buildingId
+  if (buildingId) {
+    window.mapAPIInstances.get(route.name)?.highlightBuilding(buildingId)
+  }
 });
 
 watch(selectedCategory, (newCategory) => {
   emit('search', { query: normalizeQuery(searchQuery.value), category: newCategory });
+  window.mapAPIInstances.get(route.name)?.highlightByCategory(newCategory)
 });
 
 watch(filteredItems, (newItems) => {

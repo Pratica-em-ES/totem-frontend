@@ -1,8 +1,10 @@
 import type { IMapAPI } from '@/services/map/types';
+import type { RouteRecordNameGeneric } from 'vue-router';
 
 declare global {
   interface Window {
     mapAPI: IMapAPI;
+    mapAPIInstances: Map<RouteRecordNameGeneric, IMapAPI | undefined>
   }
 }
 

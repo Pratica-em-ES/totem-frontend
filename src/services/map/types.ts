@@ -12,18 +12,21 @@ export interface IMapAPI {
   unmount(): void
 
   // Building Operations
-  getHighlightedBuilding(): MapBuildingDTO | null
+  getHighlightedBuildings(): MapBuildingDTO[] | null
   highlightBuilding(buildingId: number | string): void
   clearHighlight(): void
   highlightMultiple(buildingIds: Array<number | string>): void
+  highlightByCategory(category: string): void
 
   // Route Operations
   traceRoute(nodeIdList: number[]): void
+  traceRouteByNodeIds(fromNodeId: number, toNodeId: number): Promise<void>
   clearRoute(): void
 
   // Queries
   getBuildingByName(name: string): MapBuildingDTO | null
   getBuildingById(id: number): MapBuildingDTO | null
+  getBuildingIdByNodeId(buildingId: number): number | null
   getAllBuildings(): MapBuildingDTO[]
   
   // Camera Control
@@ -61,8 +64,8 @@ export interface MapState {
   loadedModels: Map<string, THREE.Object3D>
 
   // Highlight state
-  highlightedBuildingId: number | null
-  highlightedNodeId: number | null
+  highlightedBuildingId: number[] | null
+  highlightedNodeId: number[] | null
 
   // Route state
   currentRoute: number[] | null

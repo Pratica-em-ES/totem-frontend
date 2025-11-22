@@ -3,9 +3,11 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompaniesCache } from '@/composables/useCompaniesCache'
 import { useCurrentLocation } from '@/composables/useCurrentLocation'
+import { useSelectedCompany } from '@/composables/useSelectedCompany'
 
 // Get current location from composable
 const { currentLocation } = useCurrentLocation()
+const { setSelectedCompany, clearSelectedCompany } = useSelectedCompany()
 const route = useRoute()
 const router = useRouter()
 
@@ -132,10 +134,11 @@ const processRouteParams = async () => {
 
     // Wait for mapAPI and clear route
     await waitForMapAPI()
+    const api = window.mapAPIInstances.get(route.name)
     // @ts-ignore
-    if (window.mapAPI && window.mapAPI.clearRoute) {
+    if (api && api.clearRoute) {
       // @ts-ignore
-      window.mapAPI.clearRoute()
+      api.clearRoute()
       console.log('[LocationSearch] Route cleared from map')
     }
     return
@@ -180,12 +183,17 @@ const processRouteParams = async () => {
 
   // Wait for mapAPI and trace route
   await waitForMapAPI()
-
+  const api = window.mapAPIInstances.get(route.name)
   // @ts-ignore
-  if (window.mapAPI && window.mapAPI.traceRouteByNodeIds) {
+  if (api && api.traceRouteByNodeIds) {
+    const fromBuildingId = api.getBuildingIdByNodeId(fromNodeId)
+    const toBuildingId = api.getBuildingIdByNodeId(toNodeId)
+    if (fromBuildingId && toBuildingId) {
+      api.highlightMultiple([fromBuildingId, toBuildingId])
+    }
     console.log('[LocationSearch] Tracing route on map:', fromNodeId, '->', toNodeId)
     // @ts-ignore
-    await window.mapAPI.traceRouteByNodeIds(fromNodeId, toNodeId)
+    await api.traceRouteByNodeIds(fromNodeId, toNodeId)
     console.log('[LocationSearch] Route traced successfully')
   } else {
     console.warn('[LocationSearch] mapAPI.traceRouteByNodeIds not available')
@@ -243,6 +251,18 @@ const selectItem = async (item: SearchableItem) => {
   selectedItem.value = item
   searchQuery.value = `${item.icon} ${item.displayName}`
   showDropdown.value = false
+  
+  // If it's a company, store it in the shared selected company state
+  if (item.type === 'company') {
+    const company = companies.value.find(c => c.id === Number(item.id.replace('company-', '')))
+    if (company) {
+      setSelectedCompany(company)
+      console.log('[LocationSearch] Stored selected company:', company.name)
+    }
+  } else {
+    // If it's a building, clear the selected company
+    clearSelectedCompany()
+  }
   
   console.log('[LocationSearch] Updated UI immediately with:', item.displayName)
   console.log('[LocationSearch] Stored selectedItemId:', selectedItemId.value)
@@ -349,6 +369,7 @@ const clearInput = async () => {
   selectedItem.value = null
   selectedItemId.value = null
   showDropdown.value = false
+  clearSelectedCompany()
 
   await resetCameraAndClearRoute()
 }

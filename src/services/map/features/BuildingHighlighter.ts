@@ -25,10 +25,10 @@ export class BuildingHighlighter {
   }
 
   /**
-   * Highlight a building by ID or name
+   * Highlight (only) a single building by ID or name. The previous highlight is cleared after this function is called
    */
   highlightBuilding(buildingId: number | string): void {
-    // Check if highlighting is enabled
+        // Check if highlighting is enabled
     if (!featureFlags.enableBuildingHighlight) {
       console.log('[BuildingHighlighter] Highlighting disabled by feature flag')
       return
@@ -42,13 +42,48 @@ export class BuildingHighlighter {
 
     // Clear previous highlight
     this.clearHighlight()
-
+    
     // Set current highlight
-    this.state.highlightedBuildingId = id
+    this.state.highlightedBuildingId = [id]
 
     // Apply visual effects
     this.applyOutlineEffect(id)
     this.highlightBuildingNode(id)
+  }
+
+  /**
+   * Highlight multiple buildings. The previous highlights are cleared after this function is called
+   */
+  highlightMultiple(buildingIds: Array<number | string>): void {
+    // For now, just highlight the first one
+    // In the future, this could support multi-select
+    // if (buildingIds.length > 0) {
+    //   this.highlightBuilding(buildingIds[0])
+    // }
+    if (!featureFlags.enableBuildingHighlight) {
+      console.log('[BuildingHighlighter] Highlighting disabled by feature flag')
+      return
+    }
+    this.clearHighlight()
+    buildingIds.forEach((id) => {
+            // Check if highlighting is enabled
+      if (!featureFlags.enableBuildingHighlight) {
+        console.log('[BuildingHighlighter] Highlighting disabled by feature flag')
+        return
+      }
+    
+      const bId = this.resolveBuildingId(id)
+      if (bId === null) {
+        console.warn('Building not found:', id)
+        return
+      }
+      
+      // Apply visual effects
+      this.highlightBuildingNode(bId)
+    })
+    // Set current highlights
+    this.state.highlightedBuildingId = buildingIds.map((b) => this.resolveBuildingId(b)) as number[]
+    this.applyOutlineEffectMultiple(buildingIds as number[])
   }
 
   /**
@@ -68,29 +103,25 @@ export class BuildingHighlighter {
   }
 
   /**
-   * Highlight multiple buildings
-   */
-  highlightMultiple(buildingIds: Array<number | string>): void {
-    // For now, just highlight the first one
-    // In the future, this could support multi-select
-    if (buildingIds.length > 0) {
-      this.highlightBuilding(buildingIds[0])
-    }
-  }
-
-  /**
    * Get the currently highlighted building
    */
-  getHighlightedBuilding(): MapBuildingDTO | null {
+  // TODO - FIX. RETORNA SÓ UM PREDIO COM HIGHLIGHT
+  getHighlightedBuildings(): MapBuildingDTO[] | null {
     if (this.state.highlightedBuildingId === null || !this.state.mapData) {
       return null
     }
 
-    const building = this.state.mapData.buildings.find(
-      (b) => b.id === this.state.highlightedBuildingId
-    )
+    // const building = this.state.mapData.buildings.find(
+    //   (b) => {
+    //     if (this.state.highlightedBuildingId) {
+    //       return b.id === this.state.highlightedBuildingId[0]
+    //     }
+    //     return false
+    //   }
+    // )
+    // return building || null
 
-    return building || null
+    return this.state.mapData.buildings.filter((b) => this.state.highlightedBuildingId ? this.state.highlightedBuildingId.includes(b.id) : false) || null
   }
 
   /**
@@ -164,13 +195,32 @@ export class BuildingHighlighter {
     this.rendererManager.setOutlinedObjects(meshes)
   }
 
+  private applyOutlineEffectMultiple(buildingId: number[]): void {
+    const meshes: THREE.Object3D[] = []
+
+    buildingId.forEach(id => {
+      const buildingModel = this.state.buildingIdToModelMap.get(id)
+      if (!buildingModel) return
+
+      // Collect all meshes from the model
+      buildingModel.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          meshes.push(child)
+        }
+      })
+    });
+
+    // Apply outline to all meshes
+    this.rendererManager.setOutlinedObjects(meshes)
+  }
+
   /**
    * Highlight the node associated with a building
    */
   private highlightBuildingNode(buildingId: number): void {
     const nodeId = this.state.buildingIdToNodeIdMap.get(buildingId)
     if (nodeId !== undefined) {
-      this.state.highlightedNodeId = nodeId
+      this.state.highlightedNodeId?.push(nodeId)
     }
   }
 
