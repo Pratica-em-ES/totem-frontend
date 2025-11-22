@@ -179,6 +179,7 @@ const filteredItems = computed<SearchableItem[]>(() => {
 
   // When user types, ignore category and match only by text
   const query = rawInput.toLowerCase();
+  return searchableItems.value.filter((item) => {
     return (
       item.displayName.toLowerCase().includes(query) ||
       item.subtitle.toLowerCase().includes(query)
