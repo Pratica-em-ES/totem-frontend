@@ -55,6 +55,8 @@ onBeforeUnmount(() => {
   // Clean up global reference
   // @ts-ignore
   window.mapAPI = undefined
+  window.mapAPIInstances.get(route.name)?.unmount()
+  window.mapAPIInstances.set(route.name, undefined)
 })
 </script>
 

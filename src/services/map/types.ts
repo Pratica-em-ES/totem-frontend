@@ -20,6 +20,7 @@ export interface IMapAPI {
 
   // Route Operations
   traceRoute(nodeIdList: number[]): void
+  traceRouteByNodeIds(fromNodeId: number, toNodeId: number): Promise<void>
   clearRoute(): void
 
   // Queries

@@ -4,7 +4,7 @@ import type { RouteRecordNameGeneric } from 'vue-router';
 declare global {
   interface Window {
     mapAPI: IMapAPI;
-    mapAPIInstances: Map<RouteRecordNameGeneric, IMapAPI>
+    mapAPIInstances: Map<RouteRecordNameGeneric, IMapAPI | undefined>
   }
 }
 

@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from "vue";
+import { useRoute } from "vue-router";
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
 import { useCompaniesCache } from "@/composables/useCompaniesCache";
 
@@ -43,6 +44,7 @@ const categories = computed(() => {
 
 const selectedCategory = ref("Todas");
 const searchQuery = ref("");
+const route = useRoute()
 
 onMounted(() => {
   // ensure default
@@ -57,6 +59,7 @@ watch(searchQuery, (newQuery) => {
 // Emitir busca quando a categoria muda
 watch(selectedCategory, (newCategory) => {
   emit('search', { query: searchQuery.value, category: newCategory });
+  window.mapAPIInstances.get(route.name)?.highlightByCategory(newCategory)
 });
 
 function onSearch() {
