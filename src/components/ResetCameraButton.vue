@@ -11,13 +11,13 @@ const findMapAPI = () => {
   if (window.mapAPI) {
     return window.mapAPI;
   }
-  
+
   // Tenta encontrar o mapAPI no elemento do mapa
   const mapContainer = document.querySelector('#map-container');
   if (mapContainer && (mapContainer as any).__vue_app__?.config?.globalProperties?.$mapAPI) {
     return (mapContainer as any).__vue_app__.config.globalProperties.$mapAPI;
   }
-  
+
   return null;
 };
 
@@ -25,7 +25,7 @@ const startAPICheck = () => {
   if (checkInterval) {
     clearInterval(checkInterval);
   }
-  
+
   // Tenta encontrar o mapAPI imediatamente
   const api = findMapAPI();
   if (api) {
@@ -36,7 +36,7 @@ const startAPICheck = () => {
     }
     return;
   }
-  
+
   // Se não encontrar, inicia a verificação periódica
   checkInterval = window.setInterval(() => {
     const api = findMapAPI();
@@ -52,15 +52,15 @@ const startAPICheck = () => {
 
 onMounted(() => {
   startAPICheck();
-  
+
   // Adiciona um listener para o evento personalizado que o MapRenderer pode disparar
   const handleMapReady = () => {
     console.log('Evento map-ready detectado');
     startAPICheck();
   };
-  
+
   window.addEventListener('map-ready', handleMapReady);
-  
+
   return () => {
     window.removeEventListener('map-ready', handleMapReady);
   };
@@ -82,7 +82,7 @@ onBeforeUnmount(() => {
 
 const resetCamera = () => {
   console.log('Botão de reset clicado!');
-  
+
   if (mapAPI.value) {
     console.log('Usando mapAPI local');
     mapAPI.value.resetCamera();
@@ -121,7 +121,7 @@ const resetCamera = () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #c9a352;
+  background-color: #4169e1;
   color: white;
   border: none;
   border-radius: 8px;
@@ -136,7 +136,7 @@ const resetCamera = () => {
 }
 
 .reset-camera-button:hover {
-  background-color: #b3924a;
+  background-color: #3557c9;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
@@ -157,7 +157,7 @@ const resetCamera = () => {
   .reset-camera-button span {
     display: none;
   }
-  
+
   .reset-camera-button {
     padding: 0.5rem;
     border-radius: 50%;

@@ -107,7 +107,7 @@ watch(() => route.query, async (newQuery) => {
     </button>
 
     <div v-if="popupData.isSameLocation" class="popup-content">
-      <h3 class="popup-title">Você já está aqui!</h3>
+      <h3 class="popup-title">Você já está em {{ popupData.title }}</h3>
     </div>
 
     <div v-else class="popup-content">
@@ -143,7 +143,7 @@ watch(() => route.query, async (newQuery) => {
   position: absolute;
   bottom: 1.5rem;
   left: 1.5rem;
-  background-color: #c9a352;
+  background-color: #4169e1;
   border-radius: 8px;
   padding: 0.75rem 1rem;
   max-width: 280px;

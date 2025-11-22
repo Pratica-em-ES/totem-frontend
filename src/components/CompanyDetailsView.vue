@@ -115,7 +115,7 @@ const goToMap = () => {
                 <div class="route-button-container">
                   <button @click="goToMap" class="route-button" aria-label="Ver rotas no mapa">
                     <span class="route-text">Rotas</span>
-                    <svg viewBox="0 0 32 32" fill="#d4af37" stroke="none">
+                    <svg viewBox="0 0 32 32" fill="#4169e1" stroke="none">
                       <path d="M18 26V12c0-3-2-5-5-5H6l4-4-1.5-1.5L2 8l6.5 6.5L10 13l-4-4h7c1.5 0 3 1.5 3 3v14h2z"/>
                     </svg>
                   </button>
@@ -240,7 +240,7 @@ const goToMap = () => {
 .company-name {
   font-size: 2.8rem;
   font-weight: 700;
-  color: #d4af37;
+  color: #4169e1;
   line-height: 1.3;
   margin: 0;
   word-wrap: break-word;
@@ -313,14 +313,14 @@ const goToMap = () => {
 .route-text {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #d4af37;
+  color: #4169e1;
   margin: 0;
 }
 
 .route-button svg {
   width: 36px;
   height: 36px;
-  stroke: #d4af37;
+  stroke: #4169e1;
 }
 
 .company-logo {
@@ -403,14 +403,14 @@ const goToMap = () => {
 }
 
 .service-tag {
-  background: #d4af37;
+  background: #4169e1;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-size: 0.9rem;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 2px 4px rgba(65, 105, 225, 0.2);
 }
 
 @media (max-width: 768px) {
