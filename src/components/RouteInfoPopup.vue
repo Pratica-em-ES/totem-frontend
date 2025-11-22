@@ -177,7 +177,7 @@ watch(() => selectedCompany.value, async () => {
   position: absolute;
   bottom: 1.5rem;
   left: 1.5rem;
-  background-color: #c9a352;
+  background-color: #4169e1;
   border-radius: 8px;
   padding: 0.75rem 1rem;
   max-width: 280px;
