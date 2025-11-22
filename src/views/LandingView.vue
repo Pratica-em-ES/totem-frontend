@@ -38,11 +38,9 @@ function onLogoError() {
     @click="start"
     @keydown="onKey"
   >
-    <!-- Mapa de fundo -->
     <div class="background-map" aria-hidden="true">
       <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
         <defs>
-          <!-- Gradiente suave -->
           <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" style="stop-color:#f0f9ff;stop-opacity:1" />
             <stop offset="100%" style="stop-color:#e0f2fe;stop-opacity:1" />
@@ -51,9 +49,7 @@ function onLogoError() {
 
         <rect width="1200" height="800" fill="url(#bgGradient)"/>
 
-        <!-- Ruas orgânicas como mapa real -->
         <g class="roads" stroke-linecap="round" stroke-linejoin="round">
-          <!-- Ruas principais largas (amarelo/laranja) -->
           <path d="M -50,250 Q 180,245 320,260 Q 480,280 620,255 Q 780,225 950,240 Q 1100,250 1250,245"
                 stroke="#fbbf24" stroke-width="5" opacity="0.4" fill="none"/>
 
@@ -66,7 +62,6 @@ function onLogoError() {
           <path d="M 850,-50 Q 840,100 855,220 Q 870,380 850,520 Q 835,650 845,850"
                 stroke="#fbbf24" stroke-width="5" opacity="0.4" fill="none"/>
 
-          <!-- Ruas médias (azul claro) -->
           <path d="M -50,150 Q 200,140 350,160 Q 550,185 720,155 Q 900,135 1250,150"
                 stroke="#7dd3fc" stroke-width="4" opacity="0.35" fill="none"/>
 
@@ -79,7 +74,6 @@ function onLogoError() {
           <path d="M 600,-50 Q 590,180 610,340 Q 630,520 605,680 Q 590,770 600,850"
                 stroke="#7dd3fc" stroke-width="4" opacity="0.35" fill="none"/>
 
-          <!-- Ruas menores (bege/cinza) -->
           <g opacity="0.25">
             <path d="M -50,80 Q 150,75 280,85 Q 480,100 650,80 Q 850,65 1050,78 L 1250,80"
                   stroke="#d1d5db" stroke-width="3" fill="none"/>
@@ -112,7 +106,6 @@ function onLogoError() {
                   stroke="#d1d5db" stroke-width="3" fill="none"/>
           </g>
 
-          <!-- Ruas diagonais e curvas complexas -->
           <g opacity="0.25">
             <path d="M 100,100 Q 280,220 420,180 Q 580,140 720,200 Q 860,260 980,220"
                   stroke="#d1d5db" stroke-width="3" fill="none"/>
@@ -127,7 +120,6 @@ function onLogoError() {
                   stroke="#d1d5db" stroke-width="3" fill="none"/>
           </g>
 
-          <!-- Blocos/quarteirões sutis -->
           <g class="blocks" opacity="0.08">
             <rect x="50" y="90" width="70" height="50" fill="#9ca3af" rx="2"/>
             <rect x="180" y="100" width="60" height="40" fill="#9ca3af" rx="2"/>
@@ -166,9 +158,7 @@ function onLogoError() {
       </svg>
     </div>
 
-    <!-- Rota animada -->
     <svg class="route-path" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <!-- Rota principal -->
       <path
         class="route-line"
         d="M 100,500 L 100,380 Q 100,330 150,330 L 350,330 Q 400,330 400,280 L 400,250 Q 400,200 450,200 L 650,200 Q 700,200 700,250 L 700,350 Q 700,400 750,400 L 850,400"
@@ -179,24 +169,17 @@ function onLogoError() {
         stroke-linejoin="round"
       />
 
-      <!-- Ponto de origem (círculo com borda) -->
       <circle class="route-origin" cx="100" cy="500" r="25" fill="white" stroke="#4169e1" stroke-width="4"/>
       <circle class="route-origin-inner" cx="100" cy="500" r="12" fill="#4169e1"/>
 
-      <!-- Pontos intermediários -->
       <circle class="route-point route-point-1" cx="350" cy="330" r="12" fill="#4169e1"/>
       <circle class="route-point route-point-2" cx="450" cy="200" r="12" fill="#4169e1"/>
       <circle class="route-point route-point-3" cx="700" cy="350" r="12" fill="#4169e1"/>
 
-      <!-- Ponto de destino (pin estilo mapa 3D) -->
       <g class="destination-marker">
-        <!-- Sombra do pin -->
         <ellipse cx="850" cy="445" rx="30" ry="8" fill="#000000" opacity="0.2"/>
-        <!-- Pin unificado - fundo para profundidade -->
         <path d="M 850,333 C 867,333 882,348 882,365 C 882,382 850,428 850,428 C 850,428 818,382 818,365 C 818,348 833,333 850,333 Z" fill="#0066cc"/>
-        <!-- Pin unificado - frente -->
         <path d="M 850,335 C 866,335 880,349 880,365 C 880,380 850,425 850,425 C 850,425 820,380 820,365 C 820,349 834,335 850,335 Z" fill="#0099ff"/>
-        <!-- Brilho/reflexo lateral -->
         <path d="M 835,350 Q 832,360 834,372" stroke="#66ccff" stroke-width="5" fill="none" opacity="0.7" stroke-linecap="round"/>
         <!-- Círculo interno branco -->
         <circle cx="850" cy="363" r="15" fill="white"/>
