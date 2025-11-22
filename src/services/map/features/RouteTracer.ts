@@ -12,7 +12,7 @@ export class RouteTracer {
   static ROUTE_COLOR = 0x005ae2  // rgb(0, 90, 226) in hex
   static ROUTE_WIDTH = 2.0
   static ROUTE_OPACITY = 1
-  static ROUTE_HEIGHT = 0
+  static ROUTE_HEIGHT = 0.2  // Altura acima do chão para ser visível
   static ROUTE_RENDER_ORDER = 99
   static ROUTE_MATERIAL_SIDE = THREE.DoubleSide
 
