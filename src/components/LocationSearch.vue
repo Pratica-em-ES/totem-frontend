@@ -3,9 +3,11 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompaniesCache } from '@/composables/useCompaniesCache'
 import { useCurrentLocation } from '@/composables/useCurrentLocation'
+import { useSelectedCompany } from '@/composables/useSelectedCompany'
 
 // Get current location from composable
 const { currentLocation } = useCurrentLocation()
+const { setSelectedCompany, clearSelectedCompany } = useSelectedCompany()
 const route = useRoute()
 const router = useRouter()
 
@@ -244,6 +246,18 @@ const selectItem = async (item: SearchableItem) => {
   searchQuery.value = `${item.icon} ${item.displayName}`
   showDropdown.value = false
   
+  // If it's a company, store it in the shared selected company state
+  if (item.type === 'company') {
+    const company = companies.value.find(c => c.id === Number(item.id.replace('company-', '')))
+    if (company) {
+      setSelectedCompany(company)
+      console.log('[LocationSearch] Stored selected company:', company.name)
+    }
+  } else {
+    // If it's a building, clear the selected company
+    clearSelectedCompany()
+  }
+  
   console.log('[LocationSearch] Updated UI immediately with:', item.displayName)
   console.log('[LocationSearch] Stored selectedItemId:', selectedItemId.value)
 
@@ -349,6 +363,7 @@ const clearInput = async () => {
   selectedItem.value = null
   selectedItemId.value = null
   showDropdown.value = false
+  clearSelectedCompany()
 
   await resetCameraAndClearRoute()
 }

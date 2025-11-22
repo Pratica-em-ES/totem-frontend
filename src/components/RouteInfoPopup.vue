@@ -2,9 +2,11 @@
 import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCompaniesCache } from '@/composables/useCompaniesCache'
+import { useSelectedCompany } from '@/composables/useSelectedCompany'
 
 const route = useRoute()
 const { companies, fetchCompanies } = useCompaniesCache()
+const { selectedCompany } = useSelectedCompany()
 
 const showPopup = ref(false)
 const popupData = ref<{
@@ -31,10 +33,10 @@ onMounted(async () => {
   }
 })
 
-// Update popup when route changes
-watch(() => route.query, async (newQuery) => {
-  const fromParam = newQuery.from
-  const toParam = newQuery.to
+// Helper function to update popup data
+const updatePopupData = async () => {
+  const fromParam = route.query.from
+  const toParam = route.query.to
 
   if (!fromParam || !toParam) {
     showPopup.value = false
@@ -48,8 +50,13 @@ watch(() => route.query, async (newQuery) => {
   // Check if same location
   const isSameLocation = fromNodeId === toNodeId
 
-  // Find company or building info
-  const company = companies.value.find(c => c.building?.node?.id === toNodeId)
+  // First, try to use the selected company from the composable
+  let company = selectedCompany.value
+
+  // If no selected company in composable, fall back to finding by nodeId
+  if (!company) {
+    company = companies.value.find(c => c.building?.node?.id === toNodeId)
+  }
 
   if (company) {
     // Access dynamic fields that may exist in the API response
@@ -86,7 +93,17 @@ watch(() => route.query, async (newQuery) => {
   }
 
   showPopup.value = true
+}
+
+// Update popup when route changes
+watch(() => route.query, async () => {
+  await updatePopupData()
 }, { deep: true })
+
+// Update popup when selected company changes (even if same building)
+watch(() => selectedCompany.value, async () => {
+  await updatePopupData()
+})
 </script><template>
   <div v-if="showPopup && popupData" class="route-popup">
     <button class="close-button" @click="closePopup" aria-label="Fechar">
