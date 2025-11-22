@@ -124,7 +124,24 @@ watch(() => selectedCompany.value, async () => {
     </button>
 
     <div v-if="popupData.isSameLocation" class="popup-content">
-      <h3 class="popup-title">Você já está aqui!</h3>
+      <h3 class="popup-title">Você já está no {{ popupData.buildingName }}!</h3>
+
+      <div class="popup-info">
+        <div v-if="popupData.block" class="info-item">
+          <span class="info-label">Bloco:</span>
+          <span class="info-value">{{ popupData.block }}</span>
+        </div>
+
+        <div v-if="popupData.room" class="info-item">
+          <span class="info-label">Sala:</span>
+          <span class="info-value">{{ popupData.room }}</span>
+        </div>
+
+        <div v-if="popupData.floor" class="info-item">
+          <span class="info-label">Andar:</span>
+          <span class="info-value">{{ popupData.floor }}</span>
+        </div>
+      </div>
     </div>
 
     <div v-else class="popup-content">
