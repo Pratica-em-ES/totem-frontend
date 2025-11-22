@@ -1,19 +1,12 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-      target: ${NODE_ENV:-production}
-    env_file:
-      - .env
+      args:
+        - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8080}
     ports:
       - "8080:8080"
-    volumes:
-      # Mount source code for development (will be ignored in production)
-      - .:/app
-      - /app/node_modules
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
+      - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8080}
     restart: unless-stopped

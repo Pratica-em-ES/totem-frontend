@@ -397,7 +397,7 @@ export class MapAPI implements IMapAPI {
     try {
       console.log('[MapAPI] Fetching route from:', fromNodeId, 'to:', toNodeId)
 
-      const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+      const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
       const response = await fetch(
         `${API_BASE_URL}/routes?fromNodeId=${fromNodeId}&toNodeId=${toNodeId}`
       )

@@ -12,28 +12,35 @@
         @keyup.enter="onSearch"
         aria-label="Pesquisar"
       />
-
-      <button class="search-btn" type="button" @click="onSearch" aria-label="Buscar">
-        <!-- minimal white magnifier SVG -->
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z" stroke="none" fill="white" opacity="0.95"/>
-          <path d="M21 21l-4.35-4.35" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, watch, onMounted } from "vue";
+<script setup lang="ts">
+import { ref, watch, onMounted, computed } from "vue";
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
+import { useCompaniesCache } from "@/composables/useCompaniesCache";
 
-const props = defineProps({
-  categoriesProp: { type: Array, default: () => ["Todas", "Instituição", "Serviço", "Outro"] }
-});
 const emit = defineEmits(["search"]);
 
-const categories = ref(props.categoriesProp);
+// Access shared companies cache
+const { companies } = useCompaniesCache();
+
+// Derive categories dynamically from cached companies
+const categories = computed(() => {
+  const set = new Set<string>();
+  companies.value.forEach(company => {
+    // Support both array of objects with name and array of strings (defensive)
+    if (Array.isArray(company.categories)) {
+      company.categories.forEach(cat => {
+        if (typeof cat === 'string') set.add(cat);
+        else if (cat && typeof cat.name === 'string') set.add(cat.name);
+      });
+    }
+  });
+  return ["Todas", ...Array.from(set).sort()];
+});
+
 const selectedCategory = ref("Todas");
 const searchQuery = ref("");
 
