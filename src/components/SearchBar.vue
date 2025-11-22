@@ -1,6 +1,6 @@
 <template>
   <div class="search-wrapper">
-    <div class="search">
+    <div class="search" ref="searchContainer">
       <div class="left">
         <DropdownMenuFilter v-model="selectedCategory" :categories="categories" />
       </div>
@@ -9,28 +9,98 @@
         type="text"
         v-model="searchQuery"
         placeholder="Pesquisar"
-        @keyup.enter="onSearch"
+        @keyup.enter="handleEnter"
+        @keydown="handleKeyDown"
+        @focus="handleFocus"
+        @input="handleInput"
         aria-label="Pesquisar"
+        ref="searchInput"
       />
+
+      <button
+        v-if="searchQuery.length > 0"
+        @click="clearInput"
+        class="clear-button"
+        aria-label="Limpar pesquisa"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      <!-- Dropdown with suggestions -->
+      <div v-if="showDropdown" class="dropdown-list">
+        <div
+          v-for="(item, index) in filteredItems"
+          :key="item.id"
+          :class="['dropdown-item', { highlighted: index === highlightedIndex }]"
+          @click="selectItem(item)"
+          @mouseenter="highlightedIndex = index"
+        >
+          <span class="item-icon" aria-hidden="true">
+            <span v-if="item.type === 'company'">🏪</span>
+            <span v-else-if="item.type === 'building'">🏢</span>
+          </span>
+          <div class="item-content">
+            <div class="item-name">{{ item.displayName }}</div>
+            <div class="item-subtitle">{{ item.subtitle }}</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from "vue";
+import { ref, watch, onMounted, computed, onUnmounted } from "vue";
+import { useRoute } from 'vue-router';
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
 import { useCompaniesCache } from "@/composables/useCompaniesCache";
 
+interface SearchableItem {
+  id: string;
+  displayName: string;
+  subtitle: string;
+  nodeId: number;
+  buildingId: number;
+  type: 'building' | 'company';
+  icon: string;
+  categories: string[];
+}
+
 const emit = defineEmits(["search"]);
 
+// Route for clearing selection when leaving the initial page
+const route = useRoute();
+
 // Access shared companies cache
-const { companies } = useCompaniesCache();
+const { companies, fetchCompanies } = useCompaniesCache();
+
+// Local state
+const searchQuery = ref("");
+const selectedCategory = ref("Todas");
+const mapData = ref<any>(null);
+const showDropdown = ref(false);
+const highlightedIndex = ref(0);
+const searchContainer = ref<HTMLElement | null>(null);
+const searchInput = ref<HTMLInputElement | null>(null);
+const isSelecting = ref(false); // Flag to prevent reopening dropdown on selection
 
 // Derive categories dynamically from cached companies
 const categories = computed(() => {
   const set = new Set<string>();
   companies.value.forEach(company => {
-    // Support both array of objects with name and array of strings (defensive)
     if (Array.isArray(company.categories)) {
       company.categories.forEach(cat => {
         if (typeof cat === 'string') set.add(cat);
@@ -41,26 +111,225 @@ const categories = computed(() => {
   return ["Todas", ...Array.from(set).sort()];
 });
 
-const selectedCategory = ref("Todas");
-const searchQuery = ref("");
+// Build searchable items from companies cache and map data
+const searchableItems = computed<SearchableItem[]>(() => {
+  const items: SearchableItem[] = [];
 
-onMounted(() => {
+  // Add companies from cache
+  companies.value.forEach((company) => {
+    // Skip companies without building info
+    if (!company.building || !company.building.node) {
+      return;
+    }
+
+    const companyCats: string[] = [];
+    if (Array.isArray(company.categories)) {
+      company.categories.forEach(cat => {
+        if (typeof cat === 'string') companyCats.push(cat);
+        else if (cat && typeof cat.name === 'string') companyCats.push(cat.name);
+      });
+    }
+
+    items.push({
+      id: `company-${company.id}`,
+      displayName: company.name,
+      subtitle: `${company.building.name}`,
+      nodeId: company.building.node.id,
+      buildingId: company.building.id,
+      type: 'company',
+      icon: 'store', // used for logic if needed, but icon is rendered via SVG now
+      categories: companyCats
+    });
+  });
+
+  // Add buildings from map data
+  if (mapData.value?.buildings) {
+    mapData.value.buildings.forEach((building: any) => {
+      items.push({
+        id: `building-${building.id}`,
+        displayName: building.name,
+        subtitle: 'Prédio',
+        nodeId: building.nodeId,
+        buildingId: building.id,
+        type: 'building',
+        icon: 'building',
+        categories: [] // Buildings don't usually have categories like companies
+      });
+    });
+  }
+
+  return items;
+});
+
+// Filter items based on search query and category
+// Helper to normalize query: remove leading emojis we prefix when selecting
+function normalizeQuery(value: string) {
+  if (!value) return '';
+  return value.replace(/^[\u{1F3EA}\u{1F3E2}]\s*/u, '').trim();
+}
+
+const filteredItems = computed<SearchableItem[]>(() => {
+  // If user has not typed anything, allow category filtering (only when category != 'Todas')
+  const rawInput = normalizeQuery(searchQuery.value || '');
+  const category = selectedCategory.value;
+
+  if (!rawInput) {
+    if (category && category !== 'Todas') {
+      return searchableItems.value
+        .filter(item => item.type === 'company' && item.categories.includes(category));
+    }
+    return [];
+  }
+
+  // When user types, ignore category and match only by text
+  const query = rawInput.toLowerCase();
+  return searchableItems.value.filter((item) => {
+    return (
+      item.displayName.toLowerCase().includes(query) ||
+      item.subtitle.toLowerCase().includes(query)
+  );})
+});
+
+onMounted(async () => {
   // ensure default
   if (!selectedCategory.value) selectedCategory.value = "Todas";
+
+  // Load data
+  try {
+    await fetchCompanies();
+
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+    const response = await fetch(`${API_BASE_URL}/map`);
+    mapData.value = await response.json();
+  } catch (error) {
+    console.error('[SearchBar] Error loading data:', error);
+  }
+
+  // Click outside listener
+  document.addEventListener('click', handleClickOutside);
+
+  // Listen for global route-change events to reset selection when leaving pages
+  window.addEventListener('app-route-changed', onAppRouteChanged as EventListener);
 });
 
-// Emitir busca em tempo real quando o usuário digita
-watch(searchQuery, (newQuery) => {
-  emit('search', { query: newQuery, category: selectedCategory.value });
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('app-route-changed', onAppRouteChanged as EventListener);
 });
 
-// Emitir busca quando a categoria muda
+// Watchers
+watch(searchQuery, (newValue) => {
+  if (isSelecting.value) {
+      showDropdown.value = false;
+  } else {
+      showDropdown.value = newValue.length > 0 && filteredItems.value.length > 0;
+  }
+  highlightedIndex.value = 0;
+  // Also emit search for real-time filtering if parent uses it (existing behavior)
+  const emitted = normalizeQuery(newValue);
+  emit('search', { query: emitted, category: selectedCategory.value });
+});
+
 watch(selectedCategory, (newCategory) => {
-  emit('search', { query: searchQuery.value, category: newCategory });
+  emit('search', { query: normalizeQuery(searchQuery.value), category: newCategory });
 });
 
-function onSearch() {
-  emit('search', { query: searchQuery.value, category: selectedCategory.value });
+watch(filteredItems, (newItems) => {
+  // If items change (e.g. category changed) and we are not selecting, update visibility
+  if (!isSelecting.value && searchQuery.value.length > 0 && newItems.length > 0) {
+    showDropdown.value = true;
+  } else if (newItems.length === 0) {
+    showDropdown.value = false;
+  }
+});
+
+// Methods
+function handleInput() {
+  // User is typing manually, so we are not selecting from dropdown
+  isSelecting.value = false;
+  // When user types, reset category filter to default so category-based filter
+  // only applies when the search input is empty.
+  if (selectedCategory.value !== 'Todas') selectedCategory.value = 'Todas';
+}
+
+function handleEnter(event: Event) {
+  event.preventDefault();
+  if (showDropdown.value && filteredItems.value[highlightedIndex.value]) {
+    selectItem(filteredItems.value[highlightedIndex.value]);
+  } else {
+    // Just normal search emit
+    emit('search', { query: normalizeQuery(searchQuery.value), category: selectedCategory.value });
+    showDropdown.value = false;
+  }
+}
+
+function handleKeyDown(event: KeyboardEvent) {
+  if (!showDropdown.value || filteredItems.value.length === 0) return;
+
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      highlightedIndex.value = Math.min(
+        highlightedIndex.value + 1,
+        filteredItems.value.length - 1
+      );
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      highlightedIndex.value = Math.max(highlightedIndex.value - 1, 0);
+      break;
+    case 'Escape':
+      showDropdown.value = false;
+      break;
+  }
+}
+
+function handleFocus() {
+  if (searchQuery.value.length > 0 && filteredItems.value.length > 0) {
+    showDropdown.value = true;
+  }
+}
+
+function handleClickOutside(event: MouseEvent) {
+  if (searchContainer.value && !searchContainer.value.contains(event.target as Node)) {
+    showDropdown.value = false;
+  }
+}
+
+function selectItem(item: SearchableItem) {
+  isSelecting.value = true;
+  const emoji = item.type === 'company' ? '🏪' : '🏢';
+  searchQuery.value = `${emoji} ${item.displayName}`;
+  showDropdown.value = false;
+
+  // Emit selected item details along with query/category
+  emit('search', {
+    query: item.displayName,
+    category: selectedCategory.value,
+    item: item
+  });
+}
+
+function clearInput() {
+  isSelecting.value = false;
+  searchQuery.value = "";
+  showDropdown.value = false;
+  if (searchInput.value) searchInput.value.focus();
+}
+
+function onAppRouteChanged(evt: Event) {
+  const detail = (evt as CustomEvent).detail || {};
+  const fromName = detail.from;
+  const toName = detail.to;
+  // If we are leaving a page where selection could have been made, clear it.
+  if (fromName && (fromName === 'home' || fromName === 'landing' || fromName === 'rotas')) {
+    if (toName !== fromName) {
+      if (searchQuery.value && /^[\u{1F3EA}\u{1F3E2}]/u.test(searchQuery.value)) {
+        searchQuery.value = '';
+        emit('search', { query: '', category: 'Todas' });
+      }
+    }
+  }
 }
 </script>
 
@@ -83,6 +352,7 @@ function onSearch() {
   max-width: 1105px;
   width: 100%;
   padding-left: 0;
+  position: relative; /* For dropdown positioning */
 }
 
 .search .left {
@@ -99,33 +369,115 @@ function onSearch() {
   border-bottom-left-radius: 12px;
 }
 
-  input[type="text"] {
+input[type="text"] {
   border: none;
   outline: none;
   flex: 1 1 auto;
-    padding: 10px 12px;
+  padding: 10px 12px;
   font-size: 14px;
   color: #111827;
   background: transparent;
+  min-width: 0; /* Prevents overflow */
 }
 
 input::placeholder {
   color: #9ca3af;
 }
 
-.search-btn {
-  background: #D2AB66;
+.clear-button {
+  background: none;
   border: none;
-  color: white;
-  padding: 10px 12px;
-  border-radius: 0 8px 8px 0;
+  padding: 0.25rem 0.75rem;
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  color: #9ca3af;
+  flex-shrink: 0;
 }
 
-.search-btn:hover { filter: brightness(0.95); }
+.clear-button:hover {
+  color: #6b7280;
+}
 
-.search-btn svg { display: block; }
+/* Dropdown Styles */
+.dropdown-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  animation: slideDown 0.15s ease-out;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  gap: 0.75rem;
+}
+
+.dropdown-item:hover,
+.dropdown-item.highlighted {
+  background-color: #f3f4f6;
+}
+
+.dropdown-item:first-child {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.dropdown-item:last-child {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.item-content {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-subtitle {
+  font-size: 0.85rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>
