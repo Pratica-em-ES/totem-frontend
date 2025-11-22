@@ -64,6 +64,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed, onUnmounted } from "vue";
+import { useRoute } from 'vue-router';
 import DropdownMenuFilter from "./DropdownMenuFilter.vue";
 import { useCompaniesCache } from "@/composables/useCompaniesCache";
 
@@ -79,6 +80,9 @@ interface SearchableItem {
 }
 
 const emit = defineEmits(["search"]);
+
+// Route for clearing selection when leaving the initial page
+const route = useRoute();
 
 // Access shared companies cache
 const { companies, fetchCompanies } = useCompaniesCache();
@@ -203,10 +207,14 @@ onMounted(async () => {
 
   // Click outside listener
   document.addEventListener('click', handleClickOutside);
+
+  // Listen for global route-change events to reset selection when leaving pages
+  window.addEventListener('app-route-changed', onAppRouteChanged as EventListener);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('app-route-changed', onAppRouteChanged as EventListener);
 });
 
 // Watchers
@@ -307,6 +315,21 @@ function clearInput() {
   searchQuery.value = "";
   showDropdown.value = false;
   if (searchInput.value) searchInput.value.focus();
+}
+
+function onAppRouteChanged(evt: Event) {
+  const detail = (evt as CustomEvent).detail || {};
+  const fromName = detail.from;
+  const toName = detail.to;
+  // If we are leaving a page where selection could have been made, clear it.
+  if (fromName && (fromName === 'home' || fromName === 'landing' || fromName === 'rotas')) {
+    if (toName !== fromName) {
+      if (searchQuery.value && /^[\u{1F3EA}\u{1F3E2}]/u.test(searchQuery.value)) {
+        searchQuery.value = '';
+        emit('search', { query: '', category: 'Todas' });
+      }
+    }
+  }
 }
 </script>
 
