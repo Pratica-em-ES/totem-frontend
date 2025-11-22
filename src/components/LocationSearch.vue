@@ -134,10 +134,11 @@ const processRouteParams = async () => {
 
     // Wait for mapAPI and clear route
     await waitForMapAPI()
+    const api = window.mapAPIInstances.get(route.name)
     // @ts-ignore
-    if (window.mapAPI && window.mapAPI.clearRoute) {
+    if (api && api.clearRoute) {
       // @ts-ignore
-      window.mapAPI.clearRoute()
+      api.clearRoute()
       console.log('[LocationSearch] Route cleared from map')
     }
     return
@@ -182,12 +183,17 @@ const processRouteParams = async () => {
 
   // Wait for mapAPI and trace route
   await waitForMapAPI()
-
+  const api = window.mapAPIInstances.get(route.name)
   // @ts-ignore
-  if (window.mapAPI && window.mapAPI.traceRouteByNodeIds) {
+  if (api && api.traceRouteByNodeIds) {
+    const fromBuildingId = api.getBuildingIdByNodeId(fromNodeId)
+    const toBuildingId = api.getBuildingIdByNodeId(toNodeId)
+    if (fromBuildingId && toBuildingId) {
+      api.highlightMultiple([fromBuildingId, toBuildingId])
+    }
     console.log('[LocationSearch] Tracing route on map:', fromNodeId, '->', toNodeId)
     // @ts-ignore
-    await window.mapAPI.traceRouteByNodeIds(fromNodeId, toNodeId)
+    await api.traceRouteByNodeIds(fromNodeId, toNodeId)
     console.log('[LocationSearch] Route traced successfully')
   } else {
     console.warn('[LocationSearch] mapAPI.traceRouteByNodeIds not available')

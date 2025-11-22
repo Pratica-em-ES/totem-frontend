@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MapBuildingDTO } from '@/models/MapDTO';
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -77,7 +78,7 @@ onBeforeUnmount(() => {
   if (checkInterval) {
     clearInterval(checkInterval);
     checkInterval = null;
-  }
+  } 
 });
 
 const resetCamera = () => {

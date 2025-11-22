@@ -14,11 +14,13 @@ import { MapDataLoader } from './utils/MapDataLoader'
 import { RaycastHandler } from './utils/RaycastHandler'
 import { featureFlags } from '@/config/featureFlags'
 import { emitCameraSet, onCameraSet, getLastCamera } from './core/SyncBus'
+import { CompanyCacheCategoryManager, type ICategoryManager } from './features/CategoriesManager'
 
 /**
  * Main Map API - Clean interface for all map operations
  */
 export class MapAPI implements IMapAPI {
+  private static HIGHLIGHT_TIMEOUT: number = 300000
   private state: MapState
   private sceneManager: SceneManager
   private rendererManager: RendererManager
@@ -32,10 +34,13 @@ export class MapAPI implements IMapAPI {
   private currentLocationMarker: CurrentLocationMarker
   private mapDataLoader: MapDataLoader
   private raycastHandler: RaycastHandler
+  private categoryManager: ICategoryManager
   private initialized = false
   private currentLocationNodeId: number | null = null
   private currentAnimationFrame: number | null = null
   private currentAnimationPromise: Promise<void> | null = null
+
+  private buildingHighlightTimeoutId: number | undefined = undefined
 
   constructor() {
     // Initialize state
@@ -71,6 +76,7 @@ export class MapAPI implements IMapAPI {
     this.currentLocationMarker = new CurrentLocationMarker(this.state)
     this.mapDataLoader = new MapDataLoader()
     this.raycastHandler = new RaycastHandler(this.state)
+    this.categoryManager = new CompanyCacheCategoryManager(this.state)
 
     // Sync setup
     this.state.instanceId = Math.random().toString(36).slice(2)
@@ -152,7 +158,18 @@ export class MapAPI implements IMapAPI {
 
     // Register building click callback
     this.raycastHandler.onBuildingClickCallback((buildingId) => {
-      this.highlightBuilding(buildingId)
+      // TODO - CONSERTAR ISSO DEPOIS QUE HIGLIGHT DE MULTIPLOS PREDIOS FOR RESOLVIDO
+      // Não sei explicar por quê, 
+      if (this.state.highlightedBuildingId?.length == 1 && this.state.highlightedBuildingId[0] == buildingId) {
+        this.clearHighlight() // remover highlight se o predio clicado ja estiver realcado
+        clearTimeout(this.buildingHighlightTimeoutId)
+        this.buildingHighlightTimeoutId = undefined
+      } else {
+        this.clearHighlight()
+        clearTimeout(this.buildingHighlightTimeoutId) // prevenir que a label atualmente em destaque seja removida antes da hora
+        this.highlightBuilding(buildingId)
+        this.buildingHighlightTimeoutId = setTimeout(() => this.labelManager.setBuildingLabelsVisible(false), MapAPI.HIGHLIGHT_TIMEOUT) //5min
+      }
     })
 
     this.initialized = true
@@ -169,6 +186,7 @@ export class MapAPI implements IMapAPI {
         emitCameraSet({ x: p.x, y: p.y, z: p.z }, { x: t.x, y: t.y, z: t.z }, this.state.instanceId!)
       }
     }
+    this.categoryManager.loadCategories()
   }
 
   /**
@@ -316,25 +334,28 @@ export class MapAPI implements IMapAPI {
       }
     }
   }
-  
+
   /**
    * Get the currently highlighted building
    */
-  getHighlightedBuilding(): MapBuildingDTO | null {
-    return this.buildingHighlighter.getHighlightedBuilding()
+  getHighlightedBuildings(): MapBuildingDTO[] | null {
+    return this.buildingHighlighter.getHighlightedBuildings()
   }
 
   /**
    * Highlight a building by ID or name
    */
   highlightBuilding(buildingId: number | string): void {
+    this.labelManager.setBuildingLabelsVisible(false) // clear labels
     this.buildingHighlighter.highlightBuilding(buildingId)
+    this.labelManager.setBuildingLabelVisible(Number(buildingId))
   }
 
   /**
    * Clear all highlights
    */
   clearHighlight(): void {
+    this.labelManager.setBuildingLabelsVisible(false)
     this.buildingHighlighter.clearHighlight()
   }
 
@@ -342,7 +363,23 @@ export class MapAPI implements IMapAPI {
    * Highlight multiple buildings
    */
   highlightMultiple(buildingIds: Array<number | string>): void {
+    this.labelManager.setBuildingLabelsVisible(false) // clear labels
     this.buildingHighlighter.highlightMultiple(buildingIds)
+    buildingIds.forEach((b) => {
+      this.labelManager.setBuildingLabelVisible(Number(b))
+    })
+  }
+
+  /**
+   * Highlight buildings whose companies are part of category
+   */
+  highlightByCategory(category: string): void {
+    if (category == this.categoryManager.allCategory) {
+      // clearHighlight ou hightlightAll ?
+      this.clearHighlight()
+    } else {
+      this.highlightMultiple(this.categoryManager.getBuildingsByCategory(category));
+    }
   }
 
   /**
@@ -420,6 +457,11 @@ export class MapAPI implements IMapAPI {
   getBuildingById(id: number): MapBuildingDTO | null {
     if (!this.state.mapData) return null
     return this.state.mapData.buildings.find((b) => b.id === id) || null
+  }
+
+  getBuildingIdByNodeId(buildingId: number): number | null {
+    if (!this.state.mapData) return null
+    return this.state.mapData?.buildings.find((b) => b.nodeId === buildingId)?.id || null
   }
 
   /**
@@ -511,7 +553,7 @@ export class MapAPI implements IMapAPI {
     const upThreshold = 0.01 // Very small tolerance for up vector
     const isAtTargetPosition = camera.position.distanceTo(targetPosition) < positionThreshold
     const isUpright = camera.up.distanceTo(targetUp) < upThreshold
-
+    console.log(this.state.camera.rotation)
     if (isAtTargetPosition && isUpright) {
       console.log('[MapAPI] Camera already at target position, skipping animation')
 
@@ -561,6 +603,7 @@ export class MapAPI implements IMapAPI {
 
     // Wrap animation in a promise
     this.currentAnimationPromise = new Promise<void>((resolve) => {
+      console.log(this.state.camera?.rotation)
       const animate = () => {
         const elapsed = Date.now() - startTime
         const rawProgress = Math.min(elapsed / duration, 1)
@@ -606,6 +649,7 @@ export class MapAPI implements IMapAPI {
           console.log('[MapAPI] Final position:', camera.position)
           console.log('[MapAPI] Final up vector:', camera.up)
           console.log('[MapAPI] Focused on:', centerTarget)
+          console.log(this.state.camera?.rotation)
 
           // Resolve promise
           resolve()
