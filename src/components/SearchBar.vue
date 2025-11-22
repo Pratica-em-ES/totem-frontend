@@ -158,12 +158,20 @@ const searchableItems = computed<SearchableItem[]>(() => {
 });
 
 // Filter items based on search query and category
+// Helper to normalize query: remove leading emojis we prefix when selecting
+function normalizeQuery(value: string) {
+  if (!value) return '';
+  return value.replace(/^[\u{1F3EA}\u{1F3E2}]\s*/u, '').trim();
+}
+
 const filteredItems = computed<SearchableItem[]>(() => {
   if (!searchQuery.value || searchQuery.value.length < 1) {
     return [];
   }
 
-  const query = searchQuery.value.toLowerCase();
+  const raw = normalizeQuery(searchQuery.value);
+  if (!raw) return [];
+  const query = raw.toLowerCase();
   const category = selectedCategory.value;
 
   // First filter by category
@@ -218,11 +226,12 @@ watch(searchQuery, (newValue) => {
   }
   highlightedIndex.value = 0;
   // Also emit search for real-time filtering if parent uses it (existing behavior)
-  emit('search', { query: newValue, category: selectedCategory.value });
+  const emitted = normalizeQuery(newValue);
+  emit('search', { query: emitted, category: selectedCategory.value });
 });
 
 watch(selectedCategory, (newCategory) => {
-  emit('search', { query: searchQuery.value, category: newCategory });
+  emit('search', { query: normalizeQuery(searchQuery.value), category: newCategory });
 });
 
 watch(filteredItems, (newItems) => {
@@ -246,7 +255,7 @@ function handleEnter(event: Event) {
     selectItem(filteredItems.value[highlightedIndex.value]);
   } else {
     // Just normal search emit
-    emit('search', { query: searchQuery.value, category: selectedCategory.value });
+    emit('search', { query: normalizeQuery(searchQuery.value), category: selectedCategory.value });
     showDropdown.value = false;
   }
 }
