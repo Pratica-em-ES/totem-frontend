@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompaniesCache } from '@/composables/useCompaniesCache'
 import { useCurrentLocation } from '@/composables/useCurrentLocation'
@@ -22,6 +22,8 @@ interface SearchableItem {
 const { companies, fetchCompanies } = useCompaniesCache()
 const searchQuery = ref('')
 const selectedItem = ref<SearchableItem | null>(null)
+const selectedItemId = ref<string | null>(null)
+const isSelectionInProgress = ref(false)
 const isLoadingRoute = ref(false)
 const mapData = ref<any>(null)
 const showDropdown = ref(false)
@@ -126,6 +128,7 @@ const processRouteParams = async () => {
     console.log('[LocationSearch] No route params, clearing route and search')
     searchQuery.value = ''
     selectedItem.value = null
+    selectedItemId.value = null
 
     // Wait for mapAPI and clear route
     await waitForMapAPI()
@@ -150,12 +153,29 @@ const processRouteParams = async () => {
     return
   }
 
-  // Update UI: find destination and update search bar
-  const destinationItem = searchableItems.value.find(item => item.nodeId === toNodeId)
-  if (destinationItem) {
+  // Update UI: find destination using stored selectedItemId (for exact company match)
+  // If selectedItemId is set, use it to find the correct item
+  // Otherwise, find by nodeId (for back button or direct URL access)
+  let destinationItem: SearchableItem | undefined
+  
+  if (selectedItemId.value) {
+    destinationItem = searchableItems.value.find(item => item.id === selectedItemId.value)
+    console.log('[LocationSearch] Found destination using selectedItemId:', destinationItem?.displayName)
+  }
+  
+  if (!destinationItem) {
+    destinationItem = searchableItems.value.find(item => item.nodeId === toNodeId)
+    console.log('[LocationSearch] Found destination using nodeId:', destinationItem?.displayName)
+  }
+
+  // Only update search query if it hasn't been set by selectItem
+  // This preserves the exact company name selected by the user
+  if (destinationItem && (!selectedItem.value || selectedItem.value.id !== destinationItem.id)) {
     searchQuery.value = `${destinationItem.icon} ${destinationItem.displayName}`
     selectedItem.value = destinationItem
     console.log('[LocationSearch] UI updated with destination:', destinationItem.displayName)
+  } else if (destinationItem) {
+    console.log('[LocationSearch] Keeping existing selection:', destinationItem.displayName)
   }
 
   // Wait for mapAPI and trace route
@@ -217,6 +237,19 @@ onMounted(async () => {
 const selectItem = async (item: SearchableItem) => {
   console.log('[LocationSearch] Selected item:', item)
 
+  // Store the selected item ID and immediately update the search query display
+  // This ensures the correct company name is displayed before route processing
+  selectedItemId.value = item.id
+  selectedItem.value = item
+  searchQuery.value = `${item.icon} ${item.displayName}`
+  showDropdown.value = false
+  
+  console.log('[LocationSearch] Updated UI immediately with:', item.displayName)
+  console.log('[LocationSearch] Stored selectedItemId:', selectedItemId.value)
+
+  // Use nextTick to ensure UI is updated before route change triggers watcher
+  await nextTick()
+
   // Update URL with route params
   // The watcher will automatically trace the route when URL changes
   const fromNodeId = currentLocation.nodeId
@@ -232,6 +265,12 @@ const selectItem = async (item: SearchableItem) => {
 
   console.log('[LocationSearch] URL updated with route params:', { from: fromNodeId, to: toNodeId })
   console.log('[LocationSearch] Watcher will handle route tracing')
+  
+  // Mark selection as complete after a short delay
+  setTimeout(() => {
+    isSelectionInProgress.value = false
+    console.log('[LocationSearch] Selection complete')
+  }, 100)
 }
 
 // Handle keyboard navigation
@@ -308,6 +347,7 @@ const clearInput = async () => {
   console.log('[LocationSearch] Clearing input and resetting camera')
   searchQuery.value = ''
   selectedItem.value = null
+  selectedItemId.value = null
   showDropdown.value = false
 
   await resetCameraAndClearRoute()
@@ -316,6 +356,9 @@ const clearInput = async () => {
 // Reset camera and clear route on map
 const resetCameraAndClearRoute = async () => {
   console.log('[LocationSearch] Resetting camera and clearing route')
+
+  // Clear selected item ID
+  selectedItemId.value = null
 
   // Wait for mapAPI to be available
   await waitForMapAPI()
