@@ -70,10 +70,27 @@ export class ControlsManager {
 
   /**
    * Update controls (call in render loop if damping is enabled)
+   * FIX: Evitar que a câmera passe exatamente pelo ponto do target,
+   * deslocando levemente o target se necessário para prevenir singularidade
    */
   update(): void {
     if (this.controls && this.controls.enableDamping) {
-      this.controls.update()
+      // FIX: Proteção contra singularidade - evitar que câmera cruze exatamente o target
+      // Quando distance < 0.1, desloca o target levemente em Y para evitar vetor direção zero
+      const distanceToTarget = this.state.camera
+        ? this.state.camera.position.distanceTo(this.controls.target)
+        : Infinity
+
+      if (distanceToTarget < 0.1) {
+        // Deslocar o target levemente para evitar singularidade matemática
+        const originalTargetY = this.controls.target.y
+        this.controls.target.y += 0.01
+        this.controls.update()
+        // Restaurar Y original para não afetar comportamento geral
+        this.controls.target.y = originalTargetY
+      } else {
+        this.controls.update()
+      }
     }
   }
 
@@ -122,15 +139,18 @@ export class ControlsManager {
    * Reset the camera to the initial position and target
    */
   resetToInitialPosition(animate = true) {
-    if (!ControlsManager.originalPosition || !this.controls || !this.state.camera) {
-      console.warn('Cannot reset camera: missing original position, controls, or camera');
+    if (!this.controls || !this.state.camera) {
+      console.warn('Cannot reset camera: missing controls or camera');
       return;
     }
 
-    const { position, target } = ControlsManager.originalPosition;
+    // FIX: Usar a mesma posição inicial para evitar quebra abrupta
+    // Posição isométrica/3D com boa visão do mapa
+    const resetPosition = new THREE.Vector3(1000, 500, -600);
+    const resetTarget = new THREE.Vector3(0, 0, 0);
 
     if (animate) {
-      // Smooth animation to initial position
+      // Smooth animation to reset position
       const duration = 1000; // 1 second
       const startTime = Date.now();
       const startPosition = this.state.camera.position.clone();
@@ -146,21 +166,25 @@ export class ControlsManager {
           : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
         // Interpolate position and target
-        this.controls!.target.lerpVectors(startTarget, target, t);
-        this.state.camera!.position.lerpVectors(startPosition, position, t);
+        this.controls!.target.lerpVectors(startTarget, resetTarget, t);
+        this.state.camera!.position.lerpVectors(startPosition, resetPosition, t);
+        
+        // Fixar o up vector durante a animação
+        this.state.camera!.up.set(0, 1, 0);
 
         if (progress < 1) {
           requestAnimationFrame(animateStep);
         } else {
-          // Ensure we end up exactly at the target
-          this.controls!.target.copy(target);
-          this.state.camera!.position.copy(position);
+          // Ensure we end up exactly at the reset position
+          this.controls!.target.copy(resetTarget);
+          this.state.camera!.position.copy(resetPosition);
+          this.state.camera!.up.set(0, 1, 0);
           this.controls!.update();
 
           // Update current position after reset
           ControlsManager.currentPosition = {
-            position: position.clone(),
-            target: target.clone()
+            position: resetPosition.clone(),
+            target: resetTarget.clone()
           };
         }
       };
@@ -168,14 +192,15 @@ export class ControlsManager {
       animateStep();
     } else {
       // Instant transition
-      this.controls.target.copy(target);
-      this.state.camera.position.copy(position);
+      this.controls.target.copy(resetTarget);
+      this.state.camera.position.copy(resetPosition);
+      this.state.camera.up.set(0, 1, 0);
       this.controls.update();
 
       // Update current position after reset
       ControlsManager.currentPosition = {
-        position: position.clone(),
-        target: target.clone()
+        position: resetPosition.clone(),
+        target: resetTarget.clone()
       };
     }
   }

@@ -41,7 +41,8 @@ export class SceneManager {
       0.01,
       2000
     )
-    this.state.camera.position.set(-68, 200, 322.84)
+    // Posição isométrica/3D com boa visão do mapa - similar à imagem fornecida
+    this.state.camera.position.set(-120, 250, 200)
     this.state.camera.up.set(0, 1, 0)
     this.state.camera.lookAt(0, 0, 0)
   }

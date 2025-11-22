@@ -392,6 +392,7 @@ export class MapAPI implements IMapAPI {
   /**
    * Trace a route from one node to another by fetching from backend
    * This is the main entry point for route tracing
+   * Animates smoothly to top-down view without abrupt movements
    */
   async traceRouteByNodeIds(fromNodeId: number, toNodeId: number): Promise<void> {
     try {
@@ -421,13 +422,11 @@ export class MapAPI implements IMapAPI {
       // Clear existing route first
       this.clearRoute()
 
-      // Small delay to ensure route is cleared
-      await new Promise(resolve => setTimeout(resolve, 50))
-
-      // Trace the new route
+      // Trace the new route immediately (no delay)
       this.traceRoute(nodeIds)
 
-      // Animate to top-down view and wait for it to complete
+      // Animate to top-down view smoothly
+      // This animation handles the camera repositioning without abrupt movements
       await this.animateToTopDownView(2000)
 
       console.log('[MapAPI] Route traced and animated successfully')
@@ -512,9 +511,13 @@ export class MapAPI implements IMapAPI {
   }
 
   /**
-   * Animate camera to top-down view with smooth zoom out and rotation
-   * Temporarily disables OrbitControls during animation
+   * Animate camera to top-down view with phased animation approach
+   * Phase 1: Rotate camera to look down (keep position)
+   * Phase 2: Move camera up while maintaining top-down view
    * Returns a promise that resolves when animation completes
+   * 
+   * FIX: Usa quaternions em vez de Euler angles para evitar gimbal lock,
+   * e fixa o up vector permanentemente para prevenir flips durante a animação
    */
   animateToTopDownView(duration: number = 1500): Promise<void> {
     // Return existing promise if animation is already running
@@ -544,112 +547,122 @@ export class MapAPI implements IMapAPI {
     const camera = this.state.camera
     const controls = this.controlsManager.getControls()
 
-    const targetPosition = new THREE.Vector3(0, 600, 0) // Top-down maximum zoom out
-    const targetUp = new THREE.Vector3(0, 1, 0) // Upright orientation
+    // FIX: Fixar o up vector antes da animação para evitar inversão automática
+    camera.up.set(0, 1, 0)
+
     const centerTarget = new THREE.Vector3(0, 0, 0) // Always look at center
 
-    // Check if already at target position (within threshold)
-    const positionThreshold = 5 // 5 units tolerance
-    const upThreshold = 0.01 // Very small tolerance for up vector
-    const isAtTargetPosition = camera.position.distanceTo(targetPosition) < positionThreshold
-    const isUpright = camera.up.distanceTo(targetUp) < upThreshold
-    console.log(this.state.camera.rotation)
-    if (isAtTargetPosition && isUpright) {
-      console.log('[MapAPI] Camera already at target position, skipping animation')
+    // Calculate target position for smooth route visualization
+    // Camera positioned centered but with gradual movement (not abrupt top-down)
+    const startPosition = camera.position.clone()
+    
+    // Para uma visualização suave da rota, manter um ângulo moderado
+    // Posição mais centrada (reduz deslocamento horizontal) mas mantém altura razoável
+    // para ver bem a rota sem ser extremamente top-down
+    const targetPosition = new THREE.Vector3(
+      30,   // Posição X mais centrada (reduzido de -68)
+      600,   // Altura moderada (não tão extrema)
+      0    // Posição Z mais centrada (reduzido de 322.84)
+    )
 
-      // Ensure controls are looking at center
-      if (controls) {
-        controls.target.copy(centerTarget)
-        controls.update()
-      }
-
-      return Promise.resolve()
-    }
-
-    console.log('[MapAPI] Starting camera animation...')
-    console.log('[MapAPI] Initial position:', camera.position)
+    console.log('[MapAPI] Starting phased camera animation...')
+    console.log('[MapAPI] Initial position:', startPosition)
     console.log('[MapAPI] Target position:', targetPosition)
 
-    // Completely disable controls during animation
+    // Disable controls during animation
     const wasEnabled = controls ? controls.enabled : false
     if (controls) {
       controls.enabled = false
       console.log('[MapAPI] Controls disabled for animation')
     }
 
-    const startPosition = camera.position.clone()
     const startQuaternion = camera.quaternion.clone()
 
-    // Use Euler angles for explicit control
-    // For top-down view with north up:
-    // - Pitch (X): -90° (looking straight down)
-    // - Yaw (Y): 0° (north direction)
-    // - Roll (Z): 0° (no tilt)
-    // Order: YXZ is important for proper gimbal behavior
-
-    const targetEuler = new THREE.Euler(-Math.PI / 2, 0, 0, 'YXZ')
-    const targetQuaternion = new THREE.Quaternion().setFromEuler(targetEuler)
-
-    console.log('[MapAPI] Start quaternion:', startQuaternion)
-    console.log('[MapAPI] Target Euler angles (degrees): pitch=-90, yaw=0, roll=0')
-    console.log('[MapAPI] Target quaternion:', targetQuaternion)
+    // FIX: Calcular quaternion para visão TOP-DOWN (câmera olhando para baixo)
+    // A câmera precisa estar acima e olhar para o centro (0, y_alto, 0) → (0, 0, 0)
+    const tempCamera = new THREE.PerspectiveCamera()
+    tempCamera.position.copy(new THREE.Vector3(0, 600, 0))  // Acima do centro
+    tempCamera.up.set(0, 1, 0)  // Y é para cima
+    tempCamera.lookAt(centerTarget)  // Olhar para o centro (0, 0, 0)
+    const targetQuaternion = tempCamera.quaternion.clone()
 
     const startTime = Date.now()
+    const phase1Duration = duration * 0.2  // 20% for rotation (mais rápido)
+    const phase2Duration = duration * 0.8  // 80% for movement (muito lento e suave)
 
-    // Easing function for smooth animation (ease-in-out)
-    const easeInOutCubic = (t: number): number => {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+    // Easing functions para movimento super suave
+    const easeInOutQuart = (t: number): number => {
+      return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2
+    }
+
+    const easeOutQuad = (t: number): number => {
+      return 1 - (1 - t) * (1 - t)
     }
 
     // Wrap animation in a promise
     this.currentAnimationPromise = new Promise<void>((resolve) => {
-      console.log(this.state.camera?.rotation)
       const animate = () => {
         const elapsed = Date.now() - startTime
         const rawProgress = Math.min(elapsed / duration, 1)
-        const progress = easeInOutCubic(rawProgress)
 
-        // Simultaneously interpolate BOTH position AND rotation smoothly
-        // This ensures camera rotates to correct orientation while moving
-
-        // 1. Interpolate position (move to top-down location)
-        camera.position.lerpVectors(startPosition, targetPosition, progress)
-
-        // 2. Interpolate rotation using spherical linear interpolation (slerp)
-        //    This smoothly transitions the camera orientation (rotation + up vector)
-        //    while maintaining the look-at-center throughout
-        camera.quaternion.slerpQuaternions(startQuaternion, targetQuaternion, progress)
-
-        // 3. Update camera matrices to apply changes
-        camera.updateMatrix()
-        camera.updateMatrixWorld()
-
-        // 4. Keep controls centered
-        if (controls) {
-          controls.target.copy(centerTarget)
-          controls.update()
+        if (elapsed < phase1Duration) {
+          // Phase 1: ROTATE to straighten map (position stays same)
+          const phase1Progress = easeOutQuad(elapsed / phase1Duration)
+          
+          // Keep position fixed - DO NOT MOVE YET
+          camera.position.copy(startPosition)
+          
+          // FIX: Usar slerp para interpolação suave de quaternions (evita gimbal lock)
+          camera.quaternion.slerpQuaternions(startQuaternion, targetQuaternion, phase1Progress)
+          
+          // FIX: Re-fixar o up vector a cada frame durante a animação
+          camera.up.set(0, 1, 0)
+          
+          camera.updateMatrix()
+          camera.updateMatrixWorld()
+        } else {
+          // Phase 2: MOVE camera up enquanto MANTÉM visualização top-down
+          const phase2Elapsed = elapsed - phase1Duration
+          const phase2Progress = easeInOutQuart(Math.min(phase2Elapsed / phase2Duration, 1))
+          
+          // Move suavemente da posição inicial para a posição alvo
+          camera.position.lerpVectors(startPosition, targetPosition, phase2Progress)
+          
+          // MANTÉM A MESMA ROTAÇÃO - SEM MUDANÇAS!
+          camera.quaternion.copy(targetQuaternion)
+          
+          // FIX: Continuar fixando o up vector
+          camera.up.set(0, 1, 0)
+          
+          camera.updateMatrix()
+          camera.updateMatrixWorld()
         }
 
         if (rawProgress < 1) {
           this.currentAnimationFrame = requestAnimationFrame(animate)
         } else {
-          // Animation complete - clear state
+          // Animation complete
           this.currentAnimationFrame = null
           this.currentAnimationPromise = null
 
-          // Re-enable controls
+          // Set exact final values
+          camera.position.copy(targetPosition)
+          camera.quaternion.copy(targetQuaternion)
+          camera.up.set(0, 1, 0)  // FIX: Fixar permanentemente no final
+          camera.updateMatrix()
+          camera.updateMatrixWorld()
+
+          // Re-enable controls com target correto
           if (controls) {
             controls.target.copy(centerTarget)
             controls.enabled = wasEnabled
+            // FIX: Também fixar o up vector nos controls
             controls.update()
             console.log('[MapAPI] Controls re-enabled, focused on center')
           }
 
           console.log('[MapAPI] Camera animation completed')
           console.log('[MapAPI] Final position:', camera.position)
-          console.log('[MapAPI] Final up vector:', camera.up)
-          console.log('[MapAPI] Focused on:', centerTarget)
-          console.log(this.state.camera?.rotation)
 
           // Resolve promise
           resolve()
