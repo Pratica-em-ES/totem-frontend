@@ -48,10 +48,9 @@
           @click="selectItem(item)"
           @mouseenter="highlightedIndex = index"
         >
-          <span class="item-icon">
-            <!-- SVG Icons based on type -->
-            <svg v-if="item.type === 'company'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M13 21V9"/><path d="M9 21v-4h6v4"/></svg>
-            <svg v-else-if="item.type === 'building'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M16 18h.01"/></svg>
+          <span class="item-icon" aria-hidden="true">
+            <span v-if="item.type === 'company'">🏪</span>
+            <span v-else-if="item.type === 'building'">🏢</span>
           </span>
           <div class="item-content">
             <div class="item-name">{{ item.displayName }}</div>
