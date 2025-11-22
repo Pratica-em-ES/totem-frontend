@@ -165,33 +165,24 @@ function normalizeQuery(value: string) {
 }
 
 const filteredItems = computed<SearchableItem[]>(() => {
-  if (!searchQuery.value || searchQuery.value.length < 1) {
+  // If user has not typed anything, allow category filtering (only when category != 'Todas')
+  const rawInput = normalizeQuery(searchQuery.value || '');
+  const category = selectedCategory.value;
+
+  if (!rawInput) {
+    if (category && category !== 'Todas') {
+      return searchableItems.value
+        .filter(item => item.type === 'company' && item.categories.includes(category));
+    }
     return [];
   }
 
-  const raw = normalizeQuery(searchQuery.value);
-  if (!raw) return [];
-  const query = raw.toLowerCase();
-  const category = selectedCategory.value;
-
-  // First filter by category
-  let items = searchableItems.value;
-  if (category && category !== 'Todas') {
-    items = items.filter(item => {
-      if (item.type === 'company') {
-        return item.categories.includes(category);
-      }
-      return false;
-    });
-  }
-
-  // Then filter by query
-  return items.filter((item) => {
+  // When user types, ignore category and match only by text
+  const query = rawInput.toLowerCase();
     return (
       item.displayName.toLowerCase().includes(query) ||
       item.subtitle.toLowerCase().includes(query)
-    );
-  }).slice(0, 5); // Top 5 matches
+  );})
 });
 
 onMounted(async () => {
@@ -247,6 +238,9 @@ watch(filteredItems, (newItems) => {
 function handleInput() {
   // User is typing manually, so we are not selecting from dropdown
   isSelecting.value = false;
+  // When user types, reset category filter to default so category-based filter
+  // only applies when the search input is empty.
+  if (selectedCategory.value !== 'Todas') selectedCategory.value = 'Todas';
 }
 
 function handleEnter(event: Event) {
