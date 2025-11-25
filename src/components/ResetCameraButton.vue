@@ -84,7 +84,11 @@ onBeforeUnmount(() => {
 const resetCamera = () => {
   console.log('Botão de reset clicado!');
 
-  if (mapAPI.value) {
+  const api = window.mapAPIInstances.get(route.name)
+  if (api) {
+    console.log('Usando mapAPI do dicionário');
+    api.resetCamera()
+  } else if (mapAPI.value) {
     console.log('Usando mapAPI local');
     mapAPI.value.resetCamera();
   } else if (window.mapAPI) {
