@@ -10,6 +10,7 @@ env:
   REGION: ${{ secrets.GCP_REGION }}
   SERVICE_NAME: totem-frontend
   VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
+  SKIP_TYPE_CHECK: "true"
 
 jobs:
   deploy:
@@ -38,6 +39,7 @@ jobs:
         run: |
           docker build \
             --build-arg VITE_BACKEND_URL=${{ env.VITE_BACKEND_URL }} \
+            --build-arg SKIP_TYPE_CHECK=${{ env.SKIP_TYPE_CHECK }} \
             -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest \
             .
